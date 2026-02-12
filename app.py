@@ -60,7 +60,7 @@ with st.expander("📍 Novo Projeto / Endereço"):
                 "numero": num,
                 "cep": cep
             }
-            supabase.table("projects").insert(dados_proj).execute()
+           supabase.table("projetos").insert(dados_proj).execute()
             st.success(f"Projeto '{nome_proj}' vinculado com sucesso!")
 st.divider()
 st.header("📋 Cadastro de Novo Pedido")
@@ -166,4 +166,5 @@ if lista_pedidos_ativos:
     gerenciar_etapa("Pintura", "pintura", detalhes['has_pintura'])
 
 else:
+
     st.info("Nenhum pedido em produção no momento.")

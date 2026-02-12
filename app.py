@@ -125,41 +125,61 @@ elif menu == "📝 Gerar Pedidos":
             st.success("Pedido enviado para a fábrica!")
 
 # --- MÓDULO: CHÃO DE FÁBRICA ---
+# --- MÓDULO: CHÃO DE FÁBRICA (CORRIGIDO) ---
 elif menu == "🛠️ Chão de Fábrica":
-    st.title("🏭 Controle de Produção")
+    st.title("🏭 Controle de Produção em Tempo Real")
+    
+    # 1. Busca pedidos que ainda estão em produção
     ativos = supabase.table("pedidos").select("id, numero_pedido").eq("status_geral", "Em Produção").execute()
     lista_a = {p['numero_pedido']: p['id'] for p in ativos.data}
     
     if lista_a:
         p_sel = st.selectbox("Selecione o Pedido em Mãos", options=list(lista_a.keys()))
         id_f = lista_a[p_sel]
+        
+        # Buscar detalhes das etapas e timestamps
         det = supabase.table("pedidos").select("*").eq("id", id_f).single().execute().data
         prod = supabase.table("linha_producao").select("*").eq("id_pedido", id_f).single().execute().data
 
+        # Função profissional para renderizar cada etapa com cor e lógica
         def render_etapa(label, campo, habilitado):
             if habilitado:
-                st.markdown(f"### {label}")
-                c_i, c_f = st.columns(2)
-                ini = prod.get(f"{campo}_inicio")
-                fim = prod.get(f"{campo}_fim")
-                
-                if not ini:
-                    if c_i.button(f"Iniciar {label}", key=f"i_{campo}"):
-                        supabase.table("linha_producao").update({f"{campo}_inicio": "now()"}).eq("id_pedido", id_f).execute()
-                        st.rerun()
-                elif ini and not fim:
-                    c_i.warning(f"Em andamento desde: {ini[11:16]}")
-                    if c_f.button(f"Concluir {label}", key=f"f_{campo}"):
-                        supabase.table("linha_producao").update({f"{campo}_fim": "now()"}).eq("id_pedido", id_f).execute()
-                        st.rerun()
-                else:
-                    st.success(f"Finalizado às {fim[11:16]}")
+                with st.container():
+                    st.markdown(f"---")
+                    col_info, col_btn = st.columns([2, 1])
+                    
+                    ini = prod.get(f"{campo}_inicio")
+                    fim = prod.get(f"{campo}_fim")
+                    obs = prod.get(f"{campo}_obs") or ""
 
+                    with col_info:
+                        st.subheader(f"🛠️ {label}")
+                        if obs: st.caption(f"📝 Obs: {obs}")
+
+                    with col_btn:
+                        if not ini:
+                            if st.button(f"🚀 Iniciar", key=f"i_{campo}"):
+                                supabase.table("linha_producao").update({f"{campo}_inicio": "now()"}).eq("id_pedido", id_f).execute()
+                                st.rerun()
+                        elif ini and not fim:
+                            st.warning("⚡ Em Execução")
+                            if st.button(f"✅ Finalizar", key=f"f_{campo}"):
+                                supabase.table("linha_producao").update({f"{campo}_fim": "now()"}).eq("id_pedido", id_f).execute()
+                                st.rerun()
+                        else:
+                            st.success(f"🏁 Concluído")
+                            st.caption(f"Início: {ini[11:16]} | Fim: {fim[11:16]}")
+
+        # RENDERIZAÇÃO DE TODAS AS ETAPAS DA SUA LINHA
         render_etapa("Corte a Laser", "corte", det['has_corte_laser'])
+        render_etapa("Dobra CNC", "dobra", det['has_dobra_cnc'])
         render_etapa("Solda", "solda", det['has_solda'])
+        render_etapa("Metaleira", "metaleira", det['has_metaleira'])
+        render_etapa("Calandragem", "calandragem", det['has_calandragem'])
+        render_etapa("Galvanização", "galvanizacao", det['has_galvanizacao'])
         render_etapa("Pintura", "pintura", det['has_pintura'])
     else:
-        st.info("Nenhum pedido na fila.")
+        st.info("Nenhum pedido aguardando produção.")
 
 # --- MÓDULO: DASHBOARD ---
 elif menu == "📊 Dashboard de Gestão":
@@ -179,5 +199,6 @@ elif menu == "📊 Dashboard de Gestão":
                 "Pintura": "✅" if lp.get('pintura_fim') else ("⏳" if lp.get('pintura_inicio') else "-")
             })
         st.table(pd.DataFrame(df_l))
+
 
 

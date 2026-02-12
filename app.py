@@ -170,3 +170,52 @@ else:
 
     st.info("Nenhum pedido em produção no momento.")
 
+st.divider()
+st.header("📊 Dashboard de Gestão Operacional")
+
+# Buscar todos os pedidos e os dados de produção vinculados
+query = """
+    select 
+        p.numero_pedido, 
+        p.descricao_pedido, 
+        p.prazo_entrega,
+        p.status_geral,
+        proj.nome_projeto,
+        lp.*
+    from pedidos p
+    join projetos proj on p.id_projeto = proj.id
+    join linha_producao lp on lp.id_pedido = p.id
+"""
+
+res_dash = supabase.rpc("get_dashboard_data", {}).execute() # Ver nota abaixo
+# Para simplificar agora, vamos usar uma busca direta:
+dados_completos = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
+
+if dados_completos.data:
+    import pandas as pd
+    
+    df_lista = []
+    for item in dados_completos.data:
+        lp = item['linha_producao'][0] if item['linha_producao'] else {}
+        
+        # Lógica de Status Simplificada
+        status_atual = "Aguardando"
+        if lp.get('pintura_fim'): status_atual = "Finalizado"
+        elif lp.get('corte_inicio'): status_atual = "Em Produção"
+        
+        df_lista.append({
+            "Pedido": item['numero_pedido'],
+            "Projeto": item['projetos']['nome_projeto'],
+            "Prazo": item['prazo_entrega'],
+            "Status": status_atual,
+            "Corte": "✅" if lp.get('corte_fim') else ("⏳" if lp.get('corte_inicio') else "-"),
+            "Solda": "✅" if lp.get('solda_fim') else ("⏳" if lp.get('solda_inicio') else "-"),
+            "Pintura": "✅" if lp.get('pintura_fim') else ("⏳" if lp.get('pintura_inicio') else "-")
+        })
+
+    df = pd.DataFrame(df_lista)
+    st.dataframe(df, use_container_width=True)
+else:
+    st.info("Nenhum dado disponível para o dashboard ainda.")
+
+

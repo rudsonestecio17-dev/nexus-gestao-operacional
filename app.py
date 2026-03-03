@@ -80,7 +80,7 @@ st.divider()
 
 # 3. NAVEGAÇÃO
 tab_dash, tab_pedido, tab_fabrica, tab_admin = st.tabs([
-    "DASHBOARD", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "ADMINISTRAÇÃO", "📺 Monitor TV"
+    "DASHBOARD", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "MONITOR TV", "ADMINISTRAÇÃO"
 ])
 
 # --- MÓDULO: DASHBOARD ---
@@ -284,5 +284,6 @@ with tab_admin:
                 if st.form_submit_button("VINCULAR"):
                     supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid}).execute()
                     st.success("Vinculado.")
+
 
 

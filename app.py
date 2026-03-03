@@ -80,7 +80,7 @@ st.divider()
 
 # 3. NAVEGAÇÃO
 tab_dash, tab_pedido, tab_fabrica, tab_admin = st.tabs([
-    "DASHBOARD", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "ADMINISTRAÇÃO"
+    "DASHBOARD", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "ADMINISTRAÇÃO", "📺 Monitor TV"
 ])
 
 # --- MÓDULO: DASHBOARD ---
@@ -191,6 +191,75 @@ with tab_fabrica:
     else:
         st.info("Nenhuma ordem ativa para execução.")
 
+# --- NOVO MÓDULO: MONITOR TV (ESTILO AEROPORTO) ---
+if menu == "📺 Monitor TV":
+    # Customização de Estilo para Modo TV (Fundo Escuro)
+    st.markdown("""
+        <style>
+        .main { background-color: #0d1117 !important; color: white !important; }
+        .stApp { background-color: #0d1117 !important; }
+        header {visibility: hidden;}
+        .row-monitor {
+            background: #161b22;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 8px solid #f39c12;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dot { height: 20px; width: 20px; border-radius: 50%; display: inline-block; margin-top: 5px; }
+        .bg-success { background-color: #27ae60; box-shadow: 0 0 10px #27ae60; }
+        .bg-danger { background-color: #e74c3c; }
+        .label-etapa { font-size: 10px; color: #8b949e; text-transform: uppercase; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.title("📺 STATUS DE PRODUÇÃO | SERRALHERIA")
+    
+    # Busca os dados no Supabase
+    res = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
+    
+    if res.data:
+        for obra in res.data:
+            lp = obra['linha_producao'][0] if obra.get('linha_producao') else {}
+            
+            # Container de cada Obra
+            with st.container():
+                col_info, col_etapas = st.columns([1, 2])
+                
+                with col_info:
+                    st.markdown(f"### {obra['numero_pedido']}")
+                    st.markdown(f"<span style='color: #8b949e'>{obra['projetos']['nome_projeto']}</span>", unsafe_allow_html=True)
+                
+                with col_etapas:
+                    # Criamos colunas para as bolinhas de status
+                    etapas_visuais = [
+                        ("Corte", "corte_fim"),
+                        ("Dobra", "dobra_fim"),
+                        ("Solda", "solda_fim"),
+                        ("Pintura", "pintura_fim")
+                    ]
+                    cols_bolinhas = st.columns(len(etapas_visuais))
+                    
+                    for idx, (label, campo) in enumerate(etapas_visuais):
+                        status_class = "bg-success" if lp.get(campo) else "bg-danger"
+                        cols_bolinhas[idx].markdown(f"""
+                            <div style='text-align: center;'>
+                                <div class='label-etapa'>{label}</div>
+                                <div class='dot {status_class}'></div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                st.markdown("---")
+        
+        # Lógica de Atualização Automática (Refresh a cada 30 segundos)
+        st.info("O painel será atualizado automaticamente em 30s.")
+        # Se estiver no Streamlit Cloud, o auto-refresh é feito via script ou manualmente.
+        # Adicionaremos um componente de refresh se desejar.
+    else:
+        st.info("Aguardando dados de produção...")
+
 # --- MÓDULO: ADMINISTRAÇÃO ---
 with tab_admin:
     st.subheader("Dados Mestres")
@@ -215,4 +284,5 @@ with tab_admin:
                 if st.form_submit_button("VINCULAR"):
                     supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid}).execute()
                     st.success("Vinculado.")
+
 

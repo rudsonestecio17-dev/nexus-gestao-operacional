@@ -2,22 +2,21 @@ import streamlit as st
 import pandas as pd
 from supabase import create_client
 
-# 1. CONFIGURAÇÕES DE INTERFACE PROFISSIONAL (MODO CLARO ENTERPRISE)
+# 1. CONFIGURAÇÕES DE INTERFACE PROFISSIONAL (MODO CLARO)
 st.set_page_config(page_title="NEXUS | ERP", layout="wide", initial_sidebar_state="collapsed")
 
-# CSS para Visual Corporativo Clean
+# CSS para Visual Corporativo Clean (Fundo Claro)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     
-    /* Configuração Global */
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; color: #334155; }
     .main { background-color: #ffffff; }
     
-    /* Cabeçalhos */
+    /* Títulos e Subtítulos */
     h1, h2, h3 { color: #0f172a; font-weight: 700; letter-spacing: -0.02em; }
     
-    /* Botões Padrão Corporativo - Azul Marinho */
+    /* Botões Corporativos */
     .stButton>button {
         width: 100%;
         border-radius: 4px;
@@ -29,42 +28,30 @@ st.markdown("""
         transition: all 0.2s;
         text-transform: uppercase;
         font-size: 12px;
-        letter-spacing: 0.05em;
     }
-    .stButton>button:hover { background-color: #334155; color: #fff; border: none; }
+    .stButton>button:hover { background-color: #334155; color: #fff; }
     
-    /* Abas de Navegação - Estilo Moderno Claro */
-    .stTabs [data-baseweb="tab-list"] { 
-        gap: 10px; 
-        background-color: #f8fafc; 
-        padding: 10px 10px 0 10px;
-        border-bottom: 1px solid #e2e8f0;
-    }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        background-color: #f8fafc;
+    /* Abas Modernas */
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; background-color: #f8fafc; padding: 10px 10px 0 10px; border-bottom: 1px solid #e2e8f0; }
+    .stTabs [data-baseweb="tab"] { height: 50px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-bottom: none; border-radius: 6px 6px 0 0; padding: 10px 25px; color: #64748b; }
+    .stTabs [aria-selected="true"] { background-color: #ffffff !important; color: #1e293b !important; font-weight: 700; border: 1px solid #e2e8f0 !important; border-bottom: 2px solid #ffffff !important; }
+
+    /* Estilo do Monitor TV (Modo Claro) */
+    .row-monitor {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 6px solid #f39c12;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         border: 1px solid #e2e8f0;
-        border-bottom: none;
-        border-radius: 6px 6px 0 0;
-        padding: 10px 30px;
-        font-weight: 500;
-        color: #64748b;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #ffffff !important;
-        color: #1e293b !important;
-        font-weight: 700;
-        border: 1px solid #e2e8f0 !important;
-        border-bottom: 2px solid #ffffff !important;
-    }
-    
-    /* Inputs e Cards */
-    .stExpander {
-        border: 1px solid #e2e8f0 !important;
-        border-radius: 8px !important;
-        background-color: #ffffff !important;
-    }
-    div[data-baseweb="input"] { background-color: #fcfcfc; }
+    .dot { height: 18px; width: 18px; border-radius: 50%; display: inline-block; margin-top: 5px; }
+    .bg-success { background-color: #27ae60; box-shadow: 0 0 8px rgba(39, 174, 96, 0.4); }
+    .bg-danger { background-color: #e74c3c; }
+    .label-etapa { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -73,13 +60,12 @@ SUPABASE_URL = "https://olwwfoiiiyfhpakyftxt.supabase.co"
 SUPABASE_KEY = "sb_publishable_llZ8M4D7zp8Dk1XBVXfBlg_SXTTzFa7"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Cabeçalho
 st.title("NEXUS | Gestão Industrial")
-st.caption("Controle Operacional de Processos")
+st.caption("Controle Operacional e Monitoramento de Produção")
 st.divider()
 
-# 3. NAVEGAÇÃO
-tab_dash, tab_pedido, tab_fabrica, tab_admin = st.tabs([
+# 3. NAVEGAÇÃO (CORREÇÃO: 5 variáveis para 5 abas)
+tab_dash, tab_pedido, tab_fabrica, tab_tv, tab_admin = st.tabs([
     "DASHBOARD", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "MONITOR TV", "ADMINISTRAÇÃO"
 ])
 
@@ -118,9 +104,9 @@ with tab_pedido:
         proj_vinc = c1.selectbox("Projeto de Destino", options=list(lista_p.keys()))
         prazo_e = c2.date_input("Data Prazo")
         arq = st.file_uploader("Documentação Técnica", type=['pdf', 'jpg', 'png', 'dwg'])
-        desc_p = st.text_area("Especificações do Pedido")
+        desc_p = st.text_area("Especificações")
         
-        st.markdown("**Workflow de Produção**")
+        st.markdown("**Fluxo de Produção**")
         e1, e2, e3 = st.columns(3)
         h_corte = e1.checkbox("Corte a Laser")
         h_dobra = e1.checkbox("Dobra CNC")
@@ -145,7 +131,7 @@ with tab_pedido:
             }
             res = supabase.table("pedidos").insert(dados_ins).execute()
             supabase.table("linha_producao").insert({"id_pedido": res.data[0]['id']}).execute()
-            st.success("Ordem registrada com sucesso.")
+            st.success("Ordem registrada!")
 
 # --- MÓDULO: CHÃO DE FÁBRICA ---
 with tab_fabrica:
@@ -156,7 +142,6 @@ with tab_fabrica:
     if l_ativos:
         escolha = st.selectbox("Ordem em Operação:", options=list(l_ativos.keys()))
         dados_f = l_ativos[escolha]
-        
         if dados_f['arquivo_url']:
             st.link_button("ACESSAR DESENHO TÉCNICO", dados_f['arquivo_url'])
         
@@ -189,101 +174,68 @@ with tab_fabrica:
         render_etapa("Galvanização", "galvanizacao", det['has_galvanizacao'])
         render_etapa("Pintura", "pintura", det['has_pintura'])
     else:
-        st.info("Nenhuma ordem ativa para execução.")
+        st.info("Sem ordens ativas.")
 
-# --- NOVO MÓDULO: MONITOR TV (ESTILO AEROPORTO) ---
-if menu == "📺 Monitor TV":
-    # Customização de Estilo para Modo TV (Fundo Escuro)
-    st.markdown("""
-        <style>
-        .main { background-color: #0d1117 !important; color: white !important; }
-        .stApp { background-color: #0d1117 !important; }
-        header {visibility: hidden;}
-        .row-monitor {
-            background: #161b22;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-left: 8px solid #f39c12;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .dot { height: 20px; width: 20px; border-radius: 50%; display: inline-block; margin-top: 5px; }
-        .bg-success { background-color: #27ae60; box-shadow: 0 0 10px #27ae60; }
-        .bg-danger { background-color: #e74c3c; }
-        .label-etapa { font-size: 10px; color: #8b949e; text-transform: uppercase; }
-        </style>
-    """, unsafe_allow_html=True)
-
-    st.title("📺 STATUS DE PRODUÇÃO | SERRALHERIA")
+# --- MÓDULO: MONITOR TV (CORREÇÃO DE VARIÁVEL) ---
+with tab_tv:
+    st.subheader("Monitor de Produção Industrial")
+    res_tv = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
     
-    # Busca os dados no Supabase
-    res = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
-    
-    if res.data:
-        for obra in res.data:
+    if res_tv.data:
+        for obra in res_tv.data:
             lp = obra['linha_producao'][0] if obra.get('linha_producao') else {}
             
-            # Container de cada Obra
-            with st.container():
-                col_info, col_etapas = st.columns([1, 2])
-                
-                with col_info:
-                    st.markdown(f"### {obra['numero_pedido']}")
-                    st.markdown(f"<span style='color: #8b949e'>{obra['projetos']['nome_projeto']}</span>", unsafe_allow_html=True)
-                
-                with col_etapas:
-                    # Criamos colunas para as bolinhas de status
-                    etapas_visuais = [
-                        ("Corte", "corte_fim"),
-                        ("Dobra", "dobra_fim"),
-                        ("Solda", "solda_fim"),
-                        ("Pintura", "pintura_fim")
-                    ]
-                    cols_bolinhas = st.columns(len(etapas_visuais))
-                    
-                    for idx, (label, campo) in enumerate(etapas_visuais):
-                        status_class = "bg-success" if lp.get(campo) else "bg-danger"
-                        cols_bolinhas[idx].markdown(f"""
-                            <div style='text-align: center;'>
-                                <div class='label-etapa'>{label}</div>
-                                <div class='dot {status_class}'></div>
-                            </div>
-                        """, unsafe_allow_html=True)
-                st.markdown("---")
-        
-        # Lógica de Atualização Automática (Refresh a cada 30 segundos)
-        st.info("O painel será atualizado automaticamente em 30s.")
-        # Se estiver no Streamlit Cloud, o auto-refresh é feito via script ou manualmente.
-        # Adicionaremos um componente de refresh se desejar.
+            st.markdown(f"""
+                <div class='row-monitor'>
+                    <div style='flex: 1;'>
+                        <div style='font-size: 1.1em; font-weight: 700; color: #1e293b;'>{obra['numero_pedido']}</div>
+                        <div style='font-size: 0.85em; color: #64748b;'>{obra['projetos']['nome_projeto']}</div>
+                    </div>
+                    <div style='flex: 2; display: flex; justify-content: space-around;'>
+                        <div style='text-align: center;'>
+                            <div class='label-etapa'>Corte</div>
+                            <div class='dot {"bg-success" if lp.get("corte_fim") else "bg-danger"}'></div>
+                        </div>
+                        <div style='text-align: center;'>
+                            <div class='label-etapa'>Dobra</div>
+                            <div class='dot {"bg-success" if lp.get("dobra_fim") else "bg-danger"}'></div>
+                        </div>
+                        <div style='text-align: center;'>
+                            <div class='label-etapa'>Solda</div>
+                            <div class='dot {"bg-success" if lp.get("solda_fim") else "bg-danger"}'></div>
+                        </div>
+                        <div style='text-align: center;'>
+                            <div class='label-etapa'>Pintura</div>
+                            <div class='dot {"bg-success" if lp.get("pintura_fim") else "bg-danger"}'></div>
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+        st.caption("Atualização automática em tempo real.")
     else:
-        st.info("Aguardando dados de produção...")
+        st.info("Aguardando dados...")
 
 # --- MÓDULO: ADMINISTRAÇÃO ---
 with tab_admin:
     st.subheader("Dados Mestres")
     c1, c2 = st.columns(2)
     with c1:
-        with st.expander("Registro de Solicitante", expanded=True):
-            with st.form("f_s"):
-                n = st.text_input("Responsável")
-                e = st.text_input("Empresa")
-                t = st.text_input("Telefone")
-                if st.form_submit_button("REGISTRAR"):
-                    supabase.table("solicitantes").insert({"nome": n, "empresa": e, "telefone": t}).execute()
-                    st.success("Salvo.")
+        with st.form("cad_sol"):
+            n = st.text_input("Responsável")
+            e = st.text_input("Empresa")
+            if st.form_submit_button("REGISTRAR SOLICITANTE"):
+                supabase.table("solicitantes").insert({"nome": n, "empresa": e}).execute()
+                st.success("Salvo!")
     with c2:
-        with st.expander("Registro de Projeto", expanded=True):
-            s_db = supabase.table("solicitantes").select("id, nome, empresa").execute()
-            l_s = {f"{s['nome']} ({s['empresa']})": s['id'] for s in s_db.data}
-            with st.form("f_p"):
-                np = st.text_input("Título do Projeto")
-                sid = st.selectbox("Solicitante", options=list(l_s.keys()))
-                cid = st.text_input("Cidade")
-                if st.form_submit_button("VINCULAR"):
-                    supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid}).execute()
-                    st.success("Vinculado.")
+        s_db = supabase.table("solicitantes").select("id, nome, empresa").execute()
+        l_s = {f"{s['nome']} ({s['empresa']})": s['id'] for s in s_db.data}
+        with st.form("cad_proj"):
+            np = st.text_input("Título do Projeto")
+            sid = st.selectbox("Solicitante", options=list(l_s.keys()))
+            cid = st.text_input("Cidade")
+            if st.form_submit_button("VINCULAR PROJETO"):
+                supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid}).execute()
+                st.success("Vinculado!")
 
 
 

@@ -138,15 +138,36 @@ else:
                     st.success("Ordem registrada!")
 
     # --- MÓDULO: CHÃO DE FÁBRICA ---
+   # --- MÓDULO: CHÃO DE FÁBRICA ---
     with tab_fabrica:
         st.subheader("Controle de Processos")
+        
+        # 1. Busca os pedidos ativos
         ativos = supabase.table("pedidos").select("id, numero_pedido, arquivo_url").eq("status_geral", "Em Produção").execute()
         l_ativos = {p['numero_pedido']: p for p in ativos.data}
+        
         if l_ativos:
             escolha = st.selectbox("Ordem em Operação:", options=list(l_ativos.keys()))
             dados_f = l_ativos[escolha]
+            
+            # --- NOVO: FUNÇÃO DE VER ARQUIVO ANEXADO ---
+            st.markdown("### 📄 Documentação do Projeto")
             if dados_f['arquivo_url']:
-                st.link_button("ACESSAR DESENHO TÉCNICO", dados_f['arquivo_url'])
+                col_btn, col_info = st.columns([1, 2])
+                with col_btn:
+                    st.link_button("📂 ABRIR DESENHO TÉCNICO", dados_f['arquivo_url'], use_container_width=True)
+                
+                # Preview simples se for imagem
+                if any(ext in dados_f['arquivo_url'].lower() for ext in ['.jpg', '.png', '.jpeg']):
+                    with st.expander("👁️ Visualizar Miniatura"):
+                        st.image(dados_f['arquivo_url'], use_container_width=True)
+            else:
+                st.warning("⚠️ Nenhum arquivo anexado a esta Ordem de Serviço.")
+            
+            st.divider()
+            # --- FIM DA NOVA FUNÇÃO ---
+
+            # Busca os detalhes técnicos para as etapas
             det = supabase.table("pedidos").select("*").eq("id", dados_f['id']).single().execute().data
             prod = supabase.table("linha_producao").select("*").eq("id_pedido", dados_f['id']).single().execute().data
             
@@ -168,7 +189,7 @@ else:
                         else:
                             st.success(f"CONCLUÍDO | {i[11:16]} - {f[11:16]}")
             
-            # As 7 etapas originais
+            # Renderização das 7 etapas
             render_etapa("Corte a Laser", "corte", det['has_corte_laser'])
             render_etapa("Dobra CNC", "dobra", det['has_dobra_cnc'])
             render_etapa("Solda", "solda", det['has_solda'])
@@ -178,7 +199,6 @@ else:
             render_etapa("Pintura", "pintura", det['has_pintura'])
         else:
             st.info("Sem ordens ativas.")
-
     # --- MÓDULO: MONITOR TV ---
     if tab_tv:
         with tab_tv:
@@ -229,3 +249,4 @@ else:
                         if st.form_submit_button("VINCULAR PROJETO"):
                             supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()
                             st.success("Vinculado!")
+

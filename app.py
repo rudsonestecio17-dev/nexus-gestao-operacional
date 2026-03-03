@@ -10,48 +10,63 @@ st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
     
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; color: #334155; }
-    .main { background-color: #ffffff; }
+    /* Global Dark */
+    .stApp { background-color: #0d1117; color: #e6edf3; font-family: 'Inter', sans-serif; }
     
-    /* Títulos e Subtítulos */
-    h1, h2, h3 { color: #0f172a; font-weight: 700; letter-spacing: -0.02em; }
-    
-    /* Botões Corporativos */
-    .stButton>button {
-        width: 100%;
-        border-radius: 4px;
-        height: 45px;
-        background-color: #1e293b;
-        color: #ffffff;
-        font-weight: 600;
-        border: none;
-        transition: all 0.2s;
-        text-transform: uppercase;
-        font-size: 12px;
+    /* Abas Customizadas */
+    .stTabs [data-baseweb="tab-list"] { 
+        gap: 10px; 
+        background-color: #161b22; 
+        padding: 10px 10px 0 10px;
+        border-radius: 10px 10px 0 0;
     }
-    .stButton>button:hover { background-color: #334155; color: #fff; }
-    
-    /* Abas Modernas */
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; background-color: #f8fafc; padding: 10px 10px 0 10px; border-bottom: 1px solid #e2e8f0; }
-    .stTabs [data-baseweb="tab"] { height: 50px; background-color: #f8fafc; border: 1px solid #e2e8f0; border-bottom: none; border-radius: 6px 6px 0 0; padding: 10px 25px; color: #64748b; }
-    .stTabs [aria-selected="true"] { background-color: #ffffff !important; color: #1e293b !important; font-weight: 700; border: 1px solid #e2e8f0 !important; border-bottom: 2px solid #ffffff !important; }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        background-color: #21262d;
+        border: 1px solid #30363d;
+        color: #8b949e;
+        border-radius: 8px 8px 0 0;
+        padding: 0 25px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #0d1117 !important;
+        color: #f39c12 !important;
+        border: 1px solid #f39c12 !important;
+        border-bottom: 2px solid #0d1117 !important;
+    }
 
-    /* Estilo do Monitor TV (Modo Claro) */
+    /* Estilo do Monitor TV Industrial */
     .row-monitor {
-        background: #f8fafc;
-        border-radius: 10px;
-        padding: 15px;
-        margin-bottom: 10px;
+        background: #161b22;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 15px;
         border-left: 6px solid #f39c12;
+        border: 1px solid #30363d;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border: 1px solid #e2e8f0;
+        transition: transform 0.2s;
     }
-    .dot { height: 18px; width: 18px; border-radius: 50%; display: inline-block; margin-top: 5px; }
-    .bg-success { background-color: #27ae60; box-shadow: 0 0 8px rgba(39, 174, 96, 0.4); }
-    .bg-danger { background-color: #e74c3c; }
-    .label-etapa { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 600; }
+    .row-monitor:hover { border-color: #f39c12; }
+    
+    .id-site { font-size: 1.4em; font-weight: 800; color: #ffffff; margin: 0; }
+    .os-label { color: #f39c12; font-family: 'Courier New', monospace; font-weight: bold; }
+    
+    /* Dots e Linhas de Fluxo */
+    .status-container { display: flex; gap: 20px; align-items: center; }
+    .step-unit { text-align: center; position: relative; min-width: 60px; }
+    .dot { 
+        height: 18px; width: 18px; border-radius: 50%; display: inline-block; 
+        margin: 5px auto; border: 2px solid #0d1117;
+    }
+    .bg-success { background-color: #238636; box-shadow: 0 0 12px rgba(35, 134, 54, 0.6); }
+    .bg-danger { background-color: #da3633; box-shadow: 0 0 8px rgba(218, 54, 51, 0.3); }
+    .label-etapa { font-size: 10px; color: #8b949e; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+    
+    /* Formulários Dark */
+    .stExpander { background-color: #161b22 !important; border-color: #30363d !important; }
+    input, select, textarea { background-color: #0d1117 !important; color: white !important; border: 1px solid #30363d !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -236,6 +251,7 @@ with tab_admin:
             if st.form_submit_button("VINCULAR PROJETO"):
                 supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid}).execute()
                 st.success("Vinculado!")
+
 
 
 

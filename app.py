@@ -120,7 +120,7 @@ else:
                 with st.expander(f"Pedido: {p['numero_pedido']} | {p['status_geral']}"):
                     col1, col2, col3 = st.columns(3)
                     pv_in = col1.text_input("Nº PV (Pedido de Venda)", value=p.get('num_pv', ''), key=f"pv_{p['id']}")
-                    po_in = col2.text_input("Nº PO (Ordem de Compra)", value=p.get('num_po', ''), key=f"po_{p['id']}")
+                    po_in = col2.text_input("Nº PO (Ordem de Produção)", value=p.get('num_po', ''), key=f"po_{p['id']}")
                     if st.button("ATUALIZAR STATUS COMERCIAL", key=f"upd_{p['id']}"):
                         n_stat = p['status_geral']
                         if pv_in and not po_in: n_stat = "ORÇAMENTO APROVADO"
@@ -241,5 +241,6 @@ else:
                         if st.form_submit_button("VINCULAR PROJETO"):
                             supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()
                             st.success("Projeto vinculado!")
+
 
 

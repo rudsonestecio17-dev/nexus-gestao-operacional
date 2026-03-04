@@ -67,13 +67,12 @@ else:
 
     # Define visibilidade das abas conforme perfil
     if st.session_state.perfil == "admin":
-        tab_dash, tab_pedido, tab_fabrica, tab_tv, tab_admin = st.tabs([
-            "DASHBOARD", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "MONITOR TV", "ADMINISTRAÇÃO"
-        ])
-    else:
-        # Perfil Produção cai direto no Chão de Fábrica
-        tab_fabrica = st.tabs(["CHÃO DE FÁBRICA"])[0]
-        tab_dash = tab_pedido = tab_tv = tab_admin = None
+    tab_dash, tab_comercial, tab_pedido, tab_fabrica, tab_tv, tab_admin = st.tabs([
+        "DASHBOARD", "COMERCIAL", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "MONITOR TV", "ADMINISTRAÇÃO"
+    ])
+else:
+    tab_fabrica = st.tabs(["CHÃO DE FÁBRICA"])[0]
+    tab_dash = tab_comercial = tab_pedido = tab_tv = tab_admin = None
 
     # --- MÓDULO: DASHBOARD ---
     if tab_dash:
@@ -98,6 +97,71 @@ else:
                     st.dataframe(pd.DataFrame(df_lista), use_container_width=True, hide_index=True)
             except Exception as e:
                 st.error(f"Erro ao carregar Dashboard: {e}")
+
+    # --- MÓDULO: COMERCIAL (NOVA ABA) ---
+if tab_comercial:
+    with tab_comercial:
+        st.subheader("Gestão Comercial e Orçamentos")
+        
+        with st.expander("📝 Cadastrar Novo Orçamento", expanded=True):
+            projs_db = supabase.table("projetos").select("id, nome_projeto").execute()
+            lista_p = {p['nome_projeto']: p['id'] for p in projs_db.data}
+            
+            with st.form("form_comercial"):
+                c1, c2 = st.columns(2)
+                num_ped = c1.text_input("Identificador do Pedido/Orçamento")
+                proj_vinc = c1.selectbox("Projeto Vinculado", options=list(lista_p.keys()))
+                valor_orc = c2.number_input("Valor do Orçamento (R$)", min_value=0.0, format="%.2f")
+                prazo_est = c2.date_input("Prazo Estimado")
+                
+                if st.form_submit_button("CADASTRAR ORÇAMENTO"):
+                    dados_com = {
+                        "numero_pedido": num_ped,
+                        "id_projeto": lista_p[proj_vinc],
+                        "valor_orcamento": valor_orc,
+                        "prazo_entrega": str(prazo_est),
+                        "status_geral": "EXECUTANDO ORÇAMENTO" # Status inicial automático
+                    }
+                    res = supabase.table("pedidos").insert(dados_com).execute()
+                    st.success(f"Orçamento {num_ped} cadastrado com sucesso!")
+
+        st.divider()
+        st.subheader("⚙️ Atualizar Status Comercial")
+        
+        # Busca pedidos que NÃO estão concluídos para gestão
+        pedidos_gestao = supabase.table("pedidos").select("*").neq("status_geral", "CONCLUÍDO").execute()
+        
+        if pedidos_gestao.data:
+            for p in pedidos_gestao.data:
+                with st.expander(f"Pedido: {p['numero_pedido']} | Status: {p['status_geral']}"):
+                    col1, col2, col3 = st.columns(3)
+                    
+                    # Lógica de Input conforme sua regra
+                    pv_input = col1.text_input("Nº PV (Pedido de Venda)", value=p.get('num_pv', ''), key=f"pv_{p['id']}")
+                    po_input = col2.text_input("Nº PO (Ordem de Compra)", value=p.get('num_po', ''), key=f"po_{p['id']}")
+                    entrega_input = col3.date_input("Data de Entrega Final", key=f"ent_{p['id']}")
+
+                    if st.button("ATUALIZAR STATUS", key=f"btn_com_{p['id']}"):
+                        novo_status = p['status_geral']
+                        
+                        # Regras de Mudança de Status
+                        if pv_input and not po_input:
+                            novo_status = "ORÇAMENTO APROVADO"
+                        if po_input:
+                            novo_status = "EM PRODUÇÃO"
+                        if p['status_geral'] == "AGUARDANDO ENTREGA" and entrega_input:
+                            # Aqui você pode definir uma lógica para confirmar a entrega
+                            novo_status = "CONCLUÍDO"
+
+                        upd = {
+                            "num_pv": pv_input,
+                            "num_po": po_input,
+                            "status_geral": novo_status
+                        }
+                        supabase.table("pedidos").update(upd).eq("id", p['id']).execute()
+                        st.rerun()
+        else:
+            st.info("Nenhum pedido pendente de atualização comercial.")
 
     # --- MÓDULO: ORDENS DE PRODUÇÃO ---
     if tab_pedido:
@@ -156,7 +220,7 @@ else:
                 col_btn, col_info = st.columns([1, 2])
                 with col_btn:
                     st.link_button("📂 ABRIR DESENHO TÉCNICO", dados_f['arquivo_url'], use_container_width=True)
-                
+                 
                 # Preview simples se for imagem
                 if any(ext in dados_f['arquivo_url'].lower() for ext in ['.jpg', '.png', '.jpeg']):
                     with st.expander("👁️ Visualizar Miniatura"):
@@ -249,4 +313,5 @@ else:
                         if st.form_submit_button("VINCULAR PROJETO"):
                             supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()
                             st.success("Vinculado!")
+
 

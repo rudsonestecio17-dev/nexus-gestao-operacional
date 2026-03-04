@@ -67,193 +67,128 @@ else:
 
     # Define visibilidade das abas conforme perfil
     if st.session_state.perfil == "admin":
-    tab_dash, tab_comercial, tab_pedido, tab_fabrica, tab_tv, tab_admin = st.tabs([
-        "DASHBOARD", "COMERCIAL", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "MONITOR TV", "ADMINISTRAÇÃO"
-    ])
-else:
-    tab_fabrica = st.tabs(["CHÃO DE FÁBRICA"])[0]
-    tab_dash = tab_comercial = tab_pedido = tab_tv = tab_admin = None
+        tab_dash, tab_comercial, tab_pedido, tab_fabrica, tab_tv, tab_admin = st.tabs([
+            "DASHBOARD", "COMERCIAL", "ORDENS DE PRODUÇÃO", "CHÃO DE FÁBRICA", "MONITOR TV", "ADMINISTRAÇÃO"
+        ])
+    else:
+        tab_fabrica = st.tabs(["CHÃO DE FÁBRICA"])[0]
+        tab_dash = tab_comercial = tab_pedido = tab_tv = tab_admin = None
 
     # --- MÓDULO: DASHBOARD ---
     if tab_dash:
         with tab_dash:
             st.subheader("Painel de Acompanhamento")
-            try:
-                res = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
-                if res.data:
-                    df_lista = []
-                    for item in res.data:
-                        lp = item['linha_producao'][0] if item.get('linha_producao') else {}
-                        df_lista.append({
-                            "Ordem": item['numero_pedido'],
-                            "Projeto": item['projetos']['nome_projeto'] if item.get('projetos') else "N/A",
-                            "Entrega": item['prazo_entrega'],
-                            "Status": "CONCLUÍDO" if lp.get('pintura_fim') else "EM PRODUÇÃO",
-                            "Laser": "OK" if lp.get('corte_fim') else ("PROG" if lp.get('corte_inicio') else "-"),
-                            "Dobra": "OK" if lp.get('dobra_fim') else ("PROG" if lp.get('dobra_inicio') else "-"),
-                            "Solda": "OK" if lp.get('solda_fim') else ("PROG" if lp.get('solda_inicio') else "-"),
-                            "Pintura": "OK" if lp.get('pintura_fim') else ("PROG" if lp.get('pintura_inicio') else "-")
-                        })
-                    st.dataframe(pd.DataFrame(df_lista), use_container_width=True, hide_index=True)
-            except Exception as e:
-                st.error(f"Erro ao carregar Dashboard: {e}")
+            res = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
+            if res.data:
+                df_lista = []
+                for item in res.data:
+                    lp = item['linha_producao'][0] if item.get('linha_producao') else {}
+                    df_lista.append({
+                        "Ordem": item['numero_pedido'],
+                        "Projeto": item['projetos']['nome_projeto'] if item.get('projetos') else "N/A",
+                        "Entrega": item['prazo_entrega'],
+                        "Status": item['status_geral'],
+                        "Corte": "OK" if lp.get('corte_fim') else ("..." if lp.get('corte_inicio') else "-"),
+                        "Solda": "OK" if lp.get('solda_fim') else ("..." if lp.get('solda_inicio') else "-"),
+                        "Pintura": "OK" if lp.get('pintura_fim') else ("..." if lp.get('pintura_inicio') else "-")
+                    })
+                st.dataframe(pd.DataFrame(df_lista), use_container_width=True, hide_index=True)
 
-    # --- MÓDULO: COMERCIAL (NOVA ABA) ---
-if tab_comercial:
-    with tab_comercial:
-        st.subheader("Gestão Comercial e Orçamentos")
-        
-        with st.expander("📝 Cadastrar Novo Orçamento", expanded=True):
-            projs_db = supabase.table("projetos").select("id, nome_projeto").execute()
-            lista_p = {p['nome_projeto']: p['id'] for p in projs_db.data}
-            
-            with st.form("form_comercial"):
-                c1, c2 = st.columns(2)
-                num_ped = c1.text_input("Identificador do Pedido/Orçamento")
-                proj_vinc = c1.selectbox("Projeto Vinculado", options=list(lista_p.keys()))
-                valor_orc = c2.number_input("Valor do Orçamento (R$)", min_value=0.0, format="%.2f")
-                prazo_est = c2.date_input("Prazo Estimado")
-                
-                if st.form_submit_button("CADASTRAR ORÇAMENTO"):
-                    dados_com = {
-                        "numero_pedido": num_ped,
-                        "id_projeto": lista_p[proj_vinc],
-                        "valor_orcamento": valor_orc,
-                        "prazo_entrega": str(prazo_est),
-                        "status_geral": "EXECUTANDO ORÇAMENTO" # Status inicial automático
-                    }
-                    res = supabase.table("pedidos").insert(dados_com).execute()
-                    st.success(f"Orçamento {num_ped} cadastrado com sucesso!")
+    # --- MÓDULO: COMERCIAL ---
+    if tab_comercial:
+        with tab_comercial:
+            st.subheader("Gestão Comercial e Orçamentos")
+            with st.expander("📝 Cadastrar Novo Orçamento", expanded=True):
+                projs_db = supabase.table("projetos").select("id, nome_projeto").execute()
+                lista_p = {p['nome_projeto']: p['id'] for p in projs_db.data}
+                with st.form("form_comercial"):
+                    c1, c2 = st.columns(2)
+                    n_orc = c1.text_input("Identificador do Orçamento")
+                    p_orc = c1.selectbox("Projeto", options=list(lista_p.keys()))
+                    v_orc = c2.number_input("Valor do Orçamento (R$)", min_value=0.0, format="%.2f")
+                    p_est = c2.date_input("Prazo Estimado")
+                    if st.form_submit_button("CADASTRAR ORÇAMENTO"):
+                        dados_c = {"numero_pedido": n_orc, "id_projeto": lista_p[p_orc], "valor_orcamento": v_orc, "prazo_entrega": str(p_est), "status_geral": "EXECUTANDO ORÇAMENTO"}
+                        res_c = supabase.table("pedidos").insert(dados_c).execute()
+                        supabase.table("linha_producao").insert({"id_pedido": res_c.data[0]['id']}).execute()
+                        st.success("Orçamento Cadastrado!")
 
-        st.divider()
-        st.subheader("⚙️ Atualizar Status Comercial")
-        
-        # Busca pedidos que NÃO estão concluídos para gestão
-        pedidos_gestao = supabase.table("pedidos").select("*").neq("status_geral", "CONCLUÍDO").execute()
-        
-        if pedidos_gestao.data:
-            for p in pedidos_gestao.data:
-                with st.expander(f"Pedido: {p['numero_pedido']} | Status: {p['status_geral']}"):
+            st.divider()
+            st.subheader("⚙️ Fluxo Comercial (Aprovações)")
+            pedidos_com = supabase.table("pedidos").select("*").neq("status_geral", "CONCLUÍDO").execute()
+            for p in pedidos_com.data:
+                with st.expander(f"Pedido: {p['numero_pedido']} | {p['status_geral']}"):
                     col1, col2, col3 = st.columns(3)
-                    
-                    # Lógica de Input conforme sua regra
-                    pv_input = col1.text_input("Nº PV (Pedido de Venda)", value=p.get('num_pv', ''), key=f"pv_{p['id']}")
-                    po_input = col2.text_input("Nº PO (Ordem de Compra)", value=p.get('num_po', ''), key=f"po_{p['id']}")
-                    entrega_input = col3.date_input("Data de Entrega Final", key=f"ent_{p['id']}")
-
-                    if st.button("ATUALIZAR STATUS", key=f"btn_com_{p['id']}"):
-                        novo_status = p['status_geral']
-                        
-                        # Regras de Mudança de Status
-                        if pv_input and not po_input:
-                            novo_status = "ORÇAMENTO APROVADO"
-                        if po_input:
-                            novo_status = "EM PRODUÇÃO"
-                        if p['status_geral'] == "AGUARDANDO ENTREGA" and entrega_input:
-                            # Aqui você pode definir uma lógica para confirmar a entrega
-                            novo_status = "CONCLUÍDO"
-
-                        upd = {
-                            "num_pv": pv_input,
-                            "num_po": po_input,
-                            "status_geral": novo_status
-                        }
-                        supabase.table("pedidos").update(upd).eq("id", p['id']).execute()
+                    pv_in = col1.text_input("Nº PV (Pedido de Venda)", value=p.get('num_pv', ''), key=f"pv_{p['id']}")
+                    po_in = col2.text_input("Nº PO (Ordem de Compra)", value=p.get('num_po', ''), key=f"po_{p['id']}")
+                    if st.button("ATUALIZAR STATUS COMERCIAL", key=f"upd_{p['id']}"):
+                        n_stat = p['status_geral']
+                        if pv_in and not po_in: n_stat = "ORÇAMENTO APROVADO"
+                        if po_in: n_stat = "EM PRODUÇÃO"
+                        supabase.table("pedidos").update({"num_pv": pv_in, "num_po": po_in, "status_geral": n_stat}).eq("id", p['id']).execute()
                         st.rerun()
-        else:
-            st.info("Nenhum pedido pendente de atualização comercial.")
 
-    # --- MÓDULO: ORDENS DE PRODUÇÃO ---
+    # --- MÓDULO: ORDENS DE PRODUÇÃO (CONFIGURAÇÃO) ---
     if tab_pedido:
         with tab_pedido:
-            st.subheader("Nova Ordem de Serviço")
-            projs_db = supabase.table("projetos").select("id, nome_projeto").execute()
-            lista_p = {p['nome_projeto']: p['id'] for p in projs_db.data}
-            with st.form("form_novo_pedido", clear_on_submit=True):
-                c1, c2 = st.columns(2)
-                num_p = c1.text_input("Nº da Ordem")
-                proj_vinc = c1.selectbox("Projeto de Destino", options=list(lista_p.keys()))
-                prazo_e = c2.date_input("Data Prazo")
-                arq = st.file_uploader("Documentação Técnica", type=['pdf', 'jpg', 'png', 'dwg'])
-                desc_p = st.text_area("Especificações")
-                st.markdown("**Fluxo de Produção**")
-                e1, e2, e3 = st.columns(3)
-                h_corte = e1.checkbox("Corte a Laser")
-                h_dobra = e1.checkbox("Dobra CNC")
-                h_solda = e2.checkbox("Soldagem")
-                h_meta = e2.checkbox("Metaleira")
-                h_calan = e3.checkbox("Calandragem")
-                h_galva = e3.checkbox("Galvanização")
-                h_pint = e3.checkbox("Pintura")
-                if st.form_submit_button("REGISTRAR ORDEM"):
-                    url_f = ""
-                    if arq:
-                        path = f"pedidos/{num_p}_{arq.name}"
-                        supabase.storage.from_("desenhos").upload(path, arq.getvalue())
-                        url_f = supabase.storage.from_("desenhos").get_public_url(path)
-                    dados_ins = {
-                        "numero_pedido": num_p, "id_projeto": lista_p[proj_vinc], "descricao_pedido": desc_p,
-                        "prazo_entrega": str(prazo_e), "arquivo_url": url_f,
-                        "has_corte_laser": h_corte, "has_dobra_cnc": h_dobra, "has_solda": h_solda,
-                        "has_metaleira": h_meta, "has_calandragem": h_calan, "has_galvanizacao": h_galva, "has_pintura": h_pint
-                    }
-                    res_ins = supabase.table("pedidos").insert(dados_ins).execute()
-                    supabase.table("linha_producao").insert({"id_pedido": res_ins.data[0]['id']}).execute()
-                    st.success("Ordem registrada!")
+            st.subheader("Gerenciamento de Workflow e Desenhos")
+            pedidos_workflow = supabase.table("pedidos").select("*").eq("status_geral", "EM PRODUÇÃO").execute()
+            if pedidos_workflow.data:
+                sel_w = st.selectbox("Selecione a OS para configurar", options=[p['numero_pedido'] for p in pedidos_workflow.data])
+                id_w = next(item['id'] for item in pedidos_workflow.data if item['numero_pedido'] == sel_w)
+                with st.form("f_workflow"):
+                    arq = st.file_uploader("Documentação Técnica", type=['pdf', 'jpg', 'png', 'dwg'])
+                    st.markdown("**Workflow de Etapas**")
+                    e1, e2, e3 = st.columns(3)
+                    h_corte = e1.checkbox("Corte a Laser")
+                    h_dobra = e1.checkbox("Dobra CNC")
+                    h_solda = e2.checkbox("Soldagem")
+                    h_meta = e2.checkbox("Metaleira")
+                    h_calan = e3.checkbox("Calandragem")
+                    h_galva = e3.checkbox("Galvanização")
+                    h_pint = e3.checkbox("Pintura")
+                    if st.form_submit_button("SALVAR CONFIGURAÇÃO"):
+                        url_f = ""
+                        if arq:
+                            path = f"pedidos/{sel_w}_{arq.name}"
+                            supabase.storage.from_("desenhos").upload(path, arq.getvalue(), file_options={"upsert": "true"})
+                            url_f = supabase.storage.from_("desenhos").get_public_url(path)
+                        upd_w = {"arquivo_url": url_f, "has_corte_laser": h_corte, "has_dobra_cnc": h_dobra, "has_solda": h_solda, "has_metaleira": h_meta, "has_calandragem": h_calan, "has_galvanizacao": h_galva, "has_pintura": h_pint}
+                        supabase.table("pedidos").update(upd_w).eq("id", id_w).execute()
+                        st.success("Workflow Configurado!")
+            else: st.info("Nenhuma OS 'EM PRODUÇÃO' para configurar.")
 
     # --- MÓDULO: CHÃO DE FÁBRICA ---
-   # --- MÓDULO: CHÃO DE FÁBRICA ---
     with tab_fabrica:
-        st.subheader("Controle de Processos")
-        
-        # 1. Busca os pedidos ativos
-        ativos = supabase.table("pedidos").select("id, numero_pedido, arquivo_url").eq("status_geral", "Em Produção").execute()
+        st.subheader("Controle de Processos Industrial")
+        ativos = supabase.table("pedidos").select("id, numero_pedido, arquivo_url").eq("status_geral", "EM PRODUÇÃO").execute()
         l_ativos = {p['numero_pedido']: p for p in ativos.data}
-        
         if l_ativos:
             escolha = st.selectbox("Ordem em Operação:", options=list(l_ativos.keys()))
-            dados_f = l_ativos[escolha]
+            item_f = l_ativos[escolha]
+            if item_f['arquivo_url']:
+                st.link_button("📂 ABRIR DESENHO TÉCNICO", item_f['arquivo_url'], use_container_width=True)
             
-            # --- NOVO: FUNÇÃO DE VER ARQUIVO ANEXADO ---
-            st.markdown("### 📄 Documentação do Projeto")
-            if dados_f['arquivo_url']:
-                col_btn, col_info = st.columns([1, 2])
-                with col_btn:
-                    st.link_button("📂 ABRIR DESENHO TÉCNICO", dados_f['arquivo_url'], use_container_width=True)
-                 
-                # Preview simples se for imagem
-                if any(ext in dados_f['arquivo_url'].lower() for ext in ['.jpg', '.png', '.jpeg']):
-                    with st.expander("👁️ Visualizar Miniatura"):
-                        st.image(dados_f['arquivo_url'], use_container_width=True)
-            else:
-                st.warning("⚠️ Nenhum arquivo anexado a esta Ordem de Serviço.")
-            
-            st.divider()
-            # --- FIM DA NOVA FUNÇÃO ---
-
-            # Busca os detalhes técnicos para as etapas
-            det = supabase.table("pedidos").select("*").eq("id", dados_f['id']).single().execute().data
-            prod = supabase.table("linha_producao").select("*").eq("id_pedido", dados_f['id']).single().execute().data
+            det = supabase.table("pedidos").select("*").eq("id", item_f['id']).single().execute().data
+            prod = supabase.table("linha_producao").select("*").eq("id_pedido", item_f['id']).single().execute().data
             
             def render_etapa(label, campo, hab):
                 if hab:
-                    with st.expander(f"PROCESSO: {label.upper()}", expanded=True):
+                    with st.expander(f"⚙️ {label.upper()}", expanded=True):
                         c_i, c_f, c_o = st.columns([1, 1, 2])
                         i, f = prod.get(f"{campo}_inicio"), prod.get(f"{campo}_fim")
                         if not i:
                             if c_i.button(f"INICIAR", key=f"i_{campo}"):
-                                supabase.table("linha_producao").update({f"{campo}_inicio": "now()"}).eq("id_pedido", dados_f['id']).execute()
+                                supabase.table("linha_producao").update({f"{campo}_inicio": "now()"}).eq("id_pedido", item_f['id']).execute()
                                 st.rerun()
                         elif not f:
                             c_i.info(f"Início: {i[11:16]}")
-                            o_txt = c_o.text_input("Obs Técnica", key=f"o_{campo}")
+                            obs = c_o.text_input("Obs Técnica", key=f"o_{campo}")
                             if c_f.button(f"FINALIZAR", key=f"f_{campo}"):
-                                supabase.table("linha_producao").update({f"{campo}_fim": "now()", f"{campo}_obs": o_txt}).eq("id_pedido", dados_f['id']).execute()
+                                supabase.table("linha_producao").update({f"{campo}_fim": "now()", f"{campo}_obs": obs}).eq("id_pedido", item_f['id']).execute()
                                 st.rerun()
-                        else:
-                            st.success(f"CONCLUÍDO | {i[11:16]} - {f[11:16]}")
-            
-            # Renderização das 7 etapas
+                        else: st.success(f"CONCLUÍDO | {i[11:16]} - {f[11:16]}")
+
             render_etapa("Corte a Laser", "corte", det['has_corte_laser'])
             render_etapa("Dobra CNC", "dobra", det['has_dobra_cnc'])
             render_etapa("Solda", "solda", det['has_solda'])
@@ -261,57 +196,50 @@ if tab_comercial:
             render_etapa("Calandragem", "calandragem", det['has_calandragem'])
             render_etapa("Galvanização", "galvanizacao", det['has_galvanizacao'])
             render_etapa("Pintura", "pintura", det['has_pintura'])
-        else:
-            st.info("Sem ordens ativas.")
-    # --- MÓDULO: MONITOR TV ---
+        else: st.info("Sem ordens em produção ativa.")
+
+    # --- MONITOR TV ---
     if tab_tv:
         with tab_tv:
-            st.subheader("Monitor de Produção Industrial")
-            res_tv = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
-            if res_tv.data:
-                for obra in res_tv.data:
-                    lp = obra['linha_producao'][0] if obra.get('linha_producao') else {}
-                    st.markdown(f"""
-                        <div class='row-monitor'>
-                            <div style='flex: 1;'><div class='id-site'>{obra['numero_pedido']}</div>
-                            <div style='font-size: 0.85em; color: #8b949e;'>{obra['projetos']['nome_projeto']}</div></div>
-                            <div style='flex: 2; display: flex; justify-content: space-around;'>
-                                <div class='step-unit'><div class='label-etapa'>Corte</div><div class='dot {"bg-success" if lp.get("corte_fim") else "bg-danger"}'></div></div>
-                                <div class='step-unit'><div class='label-etapa'>Dobra</div><div class='dot {"bg-success" if lp.get("dobra_fim") else "bg-danger"}'></div></div>
-                                <div class='step-unit'><div class='label-etapa'>Solda</div><div class='dot {"bg-success" if lp.get("solda_fim") else "bg-danger"}'></div></div>
-                                <div class='step-unit'><div class='label-etapa'>Pintura</div><div class='dot {"bg-success" if lp.get("pintura_fim") else "bg-danger"}'></div></div>
-                            </div>
+            st.subheader("Monitor Industrial")
+            res_tv = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").eq("status_geral", "EM PRODUÇÃO").execute()
+            for obra in res_tv.data:
+                lp = obra['linha_producao'][0] if obra.get('linha_producao') else {}
+                st.markdown(f"""
+                    <div class='row-monitor'>
+                        <div style='flex: 1;'><div class='id-site'>{obra['numero_pedido']}</div>
+                        <div style='font-size: 0.85em; color: #8b949e;'>{obra['projetos']['nome_projeto']}</div></div>
+                        <div style='flex: 2; display: flex; justify-content: space-around;'>
+                            <div class='step-unit'><div class='label-etapa'>Corte</div><div class='dot {"bg-success" if lp.get("corte_fim") else "bg-danger"}'></div></div>
+                            <div class='step-unit'><div class='label-etapa'>Dobra</div><div class='dot {"bg-success" if lp.get("dobra_fim") else "bg-danger"}'></div></div>
+                            <div class='step-unit'><div class='label-etapa'>Solda</div><div class='dot {"bg-success" if lp.get("solda_fim") else "bg-danger"}'></div></div>
+                            <div class='step-unit'><div class='label-etapa'>Pintura</div><div class='dot {"bg-success" if lp.get("pintura_fim") else "bg-danger"}'></div></div>
                         </div>
-                    """, unsafe_allow_html=True)
+                    </div>
+                """, unsafe_allow_html=True)
 
-    # --- MÓDULO: ADMINISTRAÇÃO ---
+    # --- ADMINISTRAÇÃO (DADOS MESTRES COMPLETOS) ---
     if tab_admin:
         with tab_admin:
-            st.subheader("Dados Mestres")
+            st.subheader("Configurações de Dados Mestres")
             c1, c2 = st.columns(2)
             with c1:
                 with st.expander("Registro de Solicitante", expanded=True):
-                    with st.form("cad_sol"):
-                        n_s = st.text_input("Responsável")
-                        e_s = st.text_input("Empresa")
-                        t_s = st.text_input("Telefone")
-                        info_s = st.text_area("Informações Adicionais")
+                    with st.form("c_sol"):
+                        n_s, e_s, t_s = st.text_input("Responsável"), st.text_input("Empresa"), st.text_input("Telefone")
+                        info_s = st.text_area("Informações Adicionais / Obs")
                         if st.form_submit_button("REGISTRAR SOLICITANTE"):
                             supabase.table("solicitantes").insert({"nome": n_s, "empresa": e_s, "telefone": t_s, "info_adicional": info_s}).execute()
-                            st.success("Salvo!")
+                            st.success("Salvo com sucesso!")
             with c2:
                 with st.expander("Registro de Projeto", expanded=True):
                     s_db = supabase.table("solicitantes").select("id, nome, empresa").execute()
                     l_s = {f"{s['nome']} ({s['empresa']})": s['id'] for s in s_db.data}
-                    with st.form("cad_proj"):
-                        np = st.text_input("Título do Projeto")
-                        sid = st.selectbox("Solicitante", options=list(l_s.keys()))
-                        cid = st.text_input("Cidade")
-                        end = st.text_input("Endereço")
-                        num = st.text_input("Número")
-                        cep = st.text_input("CEP")
+                    with st.form("c_proj"):
+                        np, sid, cid = st.text_input("Título do Projeto"), st.selectbox("Vincular Solicitante", options=list(l_s.keys())), st.text_input("Cidade")
+                        end, num, cep = st.text_input("Endereço Completo"), st.text_input("Nº"), st.text_input("CEP")
                         if st.form_submit_button("VINCULAR PROJETO"):
                             supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()
-                            st.success("Vinculado!")
+                            st.success("Projeto vinculado!")
 
 

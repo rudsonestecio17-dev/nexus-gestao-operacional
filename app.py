@@ -106,7 +106,7 @@ else:
     # --- INTERFACE PRINCIPAL ---
     # Menu Lateral com Logo
     with st.sidebar:
-        if LOGO_URL == "SUA_LOGO_AQUI_OU_SUBSTITUA_PELO_TEXTO_LOGO_AQUI":
+        if LOGO_URL == "https://i.ibb.co/6Lr0QZY/nexus-2.png":
             st.markdown("<h2 style='text-align: center; color: #3b82f6;'>LOGO AQUI</h2>", unsafe_allow_html=True)
         else:
             st.image(LOGO_URL, width=150)
@@ -230,7 +230,7 @@ else:
             
             def render_etapa(label, campo, hab):
                 if hab:
-                    with st.expander(f"⚙️ {label.upper()}", expanded=True):
+                    with st.expander(f"PROCESSO: {label.upper()}", expanded=True):
                         c_i, c_f, c_o = st.columns([1, 1, 2])
                         i, f = prod.get(f"{campo}_inicio"), prod.get(f"{campo}_fim")
                         if not i:

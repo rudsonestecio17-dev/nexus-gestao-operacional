@@ -1,249 +1,264 @@
 import streamlit as st
 import pandas as pd
 from supabase import create_client
+from datetime import datetime
 
-# 1. CONFIGURAÇÕES SOLLUZ SYSTEMS (MODO CLARO)
-st.set_page_config(page_title="Solluz systems | ERP", layout="wide", initial_sidebar_state="collapsed")
+# 1. CONFIGURAÇÕES SOLLUZ SYSTEMS
+st.set_page_config(page_title="Solluz systems | ERP", layout="wide", initial_sidebar_state="expanded")
 
 # 2. CONEXÃO SUPABASE
 SUPABASE_URL = "https://olwwfoiiiyfhpakyftxt.supabase.co"
 SUPABASE_KEY = "sb_publishable_llZ8M4D7zp8Dk1XBVXfBlg_SXTTzFa7"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# URL DA LOGO OFICIAL
 LOGO_URL = "https://i.ibb.co/6Lr0QZY/nexus-2.png"
 
-# CSS PREMIUM SOLLUZ SYSTEMS (Modo Claro/Clean)
+# 3. CSS CUSTOMIZADO (Design Clean com Lateral Solluz #202c65)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
     
-    /* Configuração Global: Fundo Branco Solluz */
+    /* Global */
     .stApp { background-color: #FFFFFF !important; color: #1e293b !important; font-family: 'Inter', sans-serif !important; }
-    h1, h2, h3, h4 { color: #1e293b !important; font-weight: 700 !important; letter-spacing: -0.01em !important; }
     
-    /* Menu Lateral Solluz: Fundo #202c65 (Azul Escuro) */
-    [data-testid="stSidebar"] {
-        background-color: #202c65 !important;
-        border-right: 1px solid #e2e8f0;
-    }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h4, [data-testid="stSidebar"] div, [data-testid="stSidebar"] span, [data-testid="stSidebar"] p {
+    /* Sidebar Solluz */
+    [data-testid="stSidebar"] { background-color: #202c65 !important; border-right: 1px solid #e2e8f0; }
+    [data-testid="stSidebar"] * { color: #FFFFFF !important; }
+    
+    /* Estilização dos Botões de Navegação na Lateral */
+    .stSidebar [data-testid="stVerticalBlock"] > div > button {
+        background-color: transparent !important;
+        border: none !important;
         color: #FFFFFF !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding: 10px 20px !important;
+        width: 100% !important;
+        font-size: 14px !important;
+        border-radius: 0px !important;
+        border-left: 4px solid transparent !important;
     }
-    
-    /* Abas Customizadas Solluz (Modo Claro) */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: #f1f5f9; padding: 10px 10px 0 10px; border-radius: 12px 12px 0 0; }
-    .stTabs [data-baseweb="tab"] { height: 55px; background-color: #FFFFFF; border: 1px solid #e2e8f0; color: #64748b; border-radius: 8px 8px 0 0; padding: 0 25px; font-size: 11px; text-transform: uppercase; font-weight: 700; }
-    .stTabs [aria-selected="true"] { background-color: #FFFFFF !important; color: #3b82f6 !important; border: 1px solid #3b82f6 !important; border-bottom: 2px solid #FFFFFF !important; }
+    .stSidebar [data-testid="stVerticalBlock"] > div > button:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-left: 4px solid #3b82f6 !important;
+    }
 
-    /* Monitor TV Estilo Painel de Comando Clean */
+    /* Cards e Monitor */
     .row-monitor {
         background: #f8fafc; border-radius: 14px; padding: 25px; margin-bottom: 15px; 
         border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6; 
         display: flex; justify-content: space-between; align-items: center; 
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
-    .id-site { font-size: 1.5em; font-weight: 800; color: #1e293b; margin: 0; }
-    .dot { height: 20px; width: 20px; border-radius: 50%; display: inline-block; margin: 5px auto; border: 3px solid #FFFFFF; }
+    .dot { height: 18px; width: 18px; border-radius: 50%; display: inline-block; margin: 5px auto; border: 2px solid #FFF; }
     .bg-success { background-color: #238636; box-shadow: 0 0 10px rgba(35, 134, 54, 0.4); }
     .bg-danger { background-color: #da3633; box-shadow: 0 0 8px rgba(218, 54, 51, 0.3); }
-    .label-etapa { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; }
     
-    /* Botões Premium Solluz */
-    .stButton>button { width: 100%; border-radius: 8px; height: 48px; background-color: #f1f5f9; color: #1e293b; font-weight: 700; text-transform: uppercase; border: 1px solid #e2e8f0; transition: 0.2s; }
-    .stButton>button:hover { background-color: #3b82f6; border-color: #3b82f6; color: #ffffff; }
-    
-    /* Inputs Clean */
-    .stExpander { background-color: #f8fafc !important; border-color: #e2e8f0 !important; border-radius: 10px !important; }
-    input, select, textarea { background-color: #FFFFFF !important; color: #1e293b !important; border: 1px solid #e2e8f0 !important; }
-    input:focus, select:focus, textarea:focus { border-color: #3b82f6 !important; }
+    /* Botões de Ação */
+    .stButton>button { border-radius: 8px; font-weight: 700; text-transform: uppercase; transition: 0.2s; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- LÓGICA DE SESSÃO ---
+# --- FUNÇÕES DE APOIO ---
+def registrar_log(acao, detalhe):
+    usuario = st.session_state.get('user_name', 'Sistema')
+    try:
+        supabase.table("logs_sistema").insert({"usuario": usuario, "acao": acao, "detalhe": detalhe}).execute()
+    except: pass
+
+# --- LOGIN ---
 if 'autenticado' not in st.session_state:
     st.session_state.autenticado = False
 
-def tela_login():
-    st.markdown(f"<div style='text-align: center; margin-bottom: 30px;'><h1 style='color: #202c65; font-size: 2.8em;'>Solluz systems</h1><caption style='color: #64748b;'>CENTRO DE CONTROLE INDUSTRIAL</caption></div>", unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 1.5, 1])
-    with col2:
-        with st.form("login_form"):
-            u = st.text_input("Usuário Solluz")
+if not st.session_state.autenticado:
+    st.markdown("<div style='text-align: center; padding-top: 100px;'><h1 style='color: #202c65;'>Solluz systems</h1></div>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([1, 1.2, 1])
+    with c2:
+        with st.form("login"):
+            u = st.text_input("Usuário")
             s = st.text_input("Senha", type="password")
-            if st.form_submit_button("CONECTAR À FÁBRICA"):
+            if st.form_submit_button("ENTRAR"):
                 res = supabase.table("usuarios").select("*").eq("login", u).eq("senha", s).execute()
                 if res.data:
-                    st.session_state.autenticado, st.session_state.perfil, st.session_state.user_name = True, res.data[0]['perfil'], res.data[0]['login']
+                    st.session_state.update({"autenticado": True, "perfil": res.data[0]['perfil'], "user_name": res.data[0]['login']})
+                    registrar_log("LOGIN", f"Acesso iniciado por {u}")
                     st.rerun()
-                else: st.error("Acesso bloqueado.")
-
-if not st.session_state.autenticado:
-    tela_login()
+                else: st.error("Acesso negado.")
 else:
-    # --- INTERFACE PRINCIPAL ---
-    # Menu Lateral Solluz (White Text on Dark Blue)
+    # --- NAVEGAÇÃO LATERAL (Substituindo Tabs) ---
     with st.sidebar:
-        st.image(LOGO_URL, width=200) # Logo oficial Solluz
-        st.write(f"Usuário: **{st.session_state.user_name.upper()}**")
-        if st.button("Logout"):
+        st.image(LOGO_URL, width=200)
+        st.markdown(f"**{st.session_state.user_name.upper()}** ({st.session_state.perfil})")
+        st.divider()
+        
+        if st.session_state.perfil == "admin":
+            menu = {
+                "📊 DASHBOARD": "dash",
+                "💰 COMERCIAL": "com",
+                "🏗️ WORKFLOW OS": "work",
+                "⚙️ CHÃO DE FÁBRICA": "fab",
+                "📺 MONITOR TV": "tv",
+                "👥 ADMINISTRAÇÃO": "adm"
+            }
+        else:
+            menu = {"⚙️ CHÃO DE FÁBRICA": "fab"}
+
+        # Renderização do Menu
+        if 'pagina_ativa' not in st.session_state:
+            st.session_state.pagina_ativa = "dash" if st.session_state.perfil == "admin" else "fab"
+
+        for label, code in menu.items():
+            if st.button(label):
+                st.session_state.pagina_ativa = code
+                st.rerun()
+        
+        st.divider()
+        if st.button("🚪 SAIR"):
             st.session_state.autenticado = False
             st.rerun()
 
-    st.title("Solluz systems | Gestão Industrial")
-    st.caption("Controle Operacional e Monitoramento de Produção C-Metal")
-    st.divider()
+    # --- RENDERIZAÇÃO DAS PÁGINAS ---
+    p = st.session_state.pagina_ativa
 
-    if st.session_state.perfil == "admin":
-        tab_dash, tab_comercial, tab_pedido, tab_fabrica, tab_tv, tab_admin = st.tabs(["DASHBOARD", "COMERCIAL", "WORKFLOW OS", "CHÃO DE FÁBRICA", "MONITOR TV", "ADMIN"])
-    else:
-        tab_fabrica = st.tabs(["CHÃO DE FÁBRICA"])[0]
-        tab_dash = tab_comercial = tab_pedido = tab_tv = tab_admin = None
+    # PÁGINA: DASHBOARD
+    if p == "dash":
+        st.title("📊 Dashboard")
+        res = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
+        if res.data:
+            df_dash = []
+            for i in res.data:
+                lp = i['linha_producao'][0] if i.get('linha_producao') else {}
+                df_dash.append({
+                    "OS": i['numero_pedido'], "Projeto": i['projetos']['nome_projeto'],
+                    "Status": i['status_geral'], "Prazo": i['prazo_entrega']
+                })
+            st.dataframe(pd.DataFrame(df_dash), use_container_width=True, hide_index=True)
 
-    # --- MÓDULO: DASHBOARD ---
-    if tab_dash:
-        with tab_dash:
-            st.subheader("Painel de Indicadores")
-            res = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").execute()
-            if res.data:
-                df_data = []
-                for i in res.data:
-                    lp = i['linha_producao'][0] if i.get('linha_producao') else {}
-                    df_data.append({
-                        "Ordem": i['numero_pedido'], "Projeto": i['projetos']['nome_projeto'] if i.get('projetos') else "N/A",
-                        "Prazo": i['prazo_entrega'], "Status": i['status_geral'],
-                        "Corte": "OK" if lp.get('corte_fim') else ("..." if lp.get('corte_inicio') else "-"),
-                        "Solda": "OK" if lp.get('solda_fim') else ("..." if lp.get('solda_inicio') else "-"),
-                        "Pintura": "OK" if lp.get('pintura_fim') else ("..." if lp.get('pintura_inicio') else "-")
-                    })
-                st.dataframe(pd.DataFrame(df_data), use_container_width=True, hide_index=True)
+    # PÁGINA: COMERCIAL
+    elif p == "com":
+        st.title("💰 Gestão Comercial")
+        with st.expander("📝 Novo Orçamento", expanded=True):
+            p_db = supabase.table("projetos").select("id, nome_projeto").execute()
+            l_p = {x['nome_projeto']: x['id'] for x in p_db.data}
+            with st.form("f_com"):
+                c1, c2 = st.columns(2)
+                no, po = c1.text_input("Nº Orçamento"), c1.selectbox("Projeto", list(l_p.keys()))
+                vo, de = c2.number_input("Valor R$", min_value=0.0), c2.date_input("Prazo")
+                if st.form_submit_button("CADASTRAR"):
+                    r = supabase.table("pedidos").insert({"numero_pedido": no, "id_projeto": l_p[po], "valor_orcamento": vo, "prazo_entrega": str(de), "status_geral": "EXECUTANDO ORÇAMENTO"}).execute()
+                    supabase.table("linha_producao").insert({"id_pedido": r.data[0]['id']}).execute()
+                    registrar_log("COMERCIAL", f"Novo orçamento criado: {no}")
+                    st.success("Salvo!")
 
-    # --- MÓDULO: COMERCIAL ---
-    if tab_comercial:
-        with tab_comercial:
-            st.subheader("Orçamentos Solluz systems")
-            with st.expander("📝 Cadastrar Novo Orçamento", expanded=True):
-                p_db = supabase.table("projetos").select("id, nome_projeto").execute()
-                l_p = {p['nome_projeto']: p['id'] for p in p_db.data}
-                with st.form("form_comercial"):
-                    c1, c2 = st.columns(2)
-                    n_o, p_o = c1.text_input("Identificador do Orçamento"), c1.selectbox("Projeto Vinculado", options=list(l_p.keys()))
-                    v_o, d_e = c2.number_input("Valor R$", min_value=0.0, format="%.2f"), c2.date_input("Prazo de Entrega Estimado")
-                    if st.form_submit_button("CADASTRAR ORÇAMENTO COMERCIAL"):
-                        d_ins = {"numero_pedido": n_o, "id_projeto": l_p[p_o], "valor_orcamento": v_o, "prazo_entrega": str(d_e), "status_geral": "EXECUTANDO ORÇAMENTO"}
-                        res_ins = supabase.table("pedidos").insert(d_ins).execute()
-                        supabase.table("linha_producao").insert({"id_pedido": res_ins.data[0]['id']}).execute()
-                        st.success("Cadastrado com Sucesso!")
+        st.divider()
+        p_com = supabase.table("pedidos").select("*").neq("status_geral", "CONCLUÍDO").execute()
+        for i in p_com.data:
+            with st.expander(f"OS: {i['numero_pedido']} | {i['status_geral']}"):
+                c1, c2 = st.columns(2)
+                pv = c1.text_input("Nº PV", value=i.get('num_pv', ''), key=f"pv_{i['id']}")
+                po = c2.text_input("Nº PO", value=i.get('num_po', ''), key=f"po_{i['id']}")
+                if st.button("ATUALIZAR STATUS", key=f"u_{i['id']}"):
+                    ns = i['status_geral']
+                    if pv and not po: ns = "ORÇAMENTO APROVADO"
+                    if po: ns = "EM PRODUÇÃO"
+                    supabase.table("pedidos").update({"num_pv": pv, "num_po": po, "status_geral": ns}).eq("id", i['id']).execute()
+                    registrar_log("COMERCIAL", f"Status alterado OS {i['numero_pedido']} para {ns}")
+                    st.rerun()
 
-            st.divider()
-            st.subheader("⚙️ Aprovações e Gatilhos PV/PO")
-            p_pend = supabase.table("pedidos").select("*").neq("status_geral", "CONCLUÍDO").execute()
-            for p in p_pend.data:
-                with st.expander(f"Pedido: {p['numero_pedido']} | {p['status_geral']}"):
-                    c1, c2 = st.columns(2)
-                    pv, po = c1.text_input("Nº PV (Pedido de Venda)", value=p.get('num_pv', ''), key=f"pv_{p['id']}"), c2.text_input("Nº PO (Ordem de Compra)", value=p.get('num_po', ''), key=f"po_{p['id']}")
-                    if st.button("ATUALIZAR STATUS COMERCIAL", key=f"u_{p['id']}"):
-                        new_s = p['status_geral']
-                        if pv and not po: new_s = "ORÇAMENTO APROVADO"
-                        if po: new_s = "EM PRODUÇÃO"
-                        supabase.table("pedidos").update({"num_pv": pv, "num_po": po, "status_geral": new_s}).eq("id", p['id']).execute()
-                        st.rerun()
+    # PÁGINA: WORKFLOW
+    elif p == "work":
+        st.title("🏗️ Workflow e Documentação")
+        p_wf = supabase.table("pedidos").select("*").eq("status_geral", "EM PRODUÇÃO").execute()
+        if p_wf.data:
+            sel = st.selectbox("OS", [x['numero_pedido'] for x in p_wf.data])
+            id_w = next(x['id'] for x in p_wf.data if x['numero_pedido'] == sel)
+            with st.form("f_wf"):
+                arq = st.file_uploader("Arquivo", type=['pdf','jpg','png'])
+                e1, e2, e3 = st.columns(3)
+                h1, h2, h3, h4, h5, h6, h7 = e1.checkbox("Corte"), e1.checkbox("Dobra"), e2.checkbox("Solda"), e2.checkbox("Meta"), e3.checkbox("Calan"), e3.checkbox("Galva"), e3.checkbox("Pint")
+                if st.form_submit_button("SALVAR CONFIGURAÇÃO"):
+                    url = ""
+                    if arq:
+                        path = f"pedidos/{sel}_{arq.name}"
+                        supabase.storage.from_("desenhos").upload(path, arq.getvalue(), {"upsert": "true"})
+                        url = supabase.storage.from_("desenhos").get_public_url(path)
+                    supabase.table("pedidos").update({"arquivo_url": url, "has_corte_laser": h1, "has_dobra_cnc": h2, "has_solda": h3, "has_metaleira": h4, "has_calandragem": h5, "has_galvanizacao": h6, "has_pintura": h7}).eq("id", id_w).execute()
+                    registrar_log("WORKFLOW", f"Configurado workflow da OS {sel}")
+                    st.success("OK!")
 
-    # --- MÓDULO: ORDENS DE PRODUÇÃO (WORKFLOW) ---
-    if tab_pedido:
-        with tab_pedido:
-            st.subheader("Configuração Workflow Técnico")
-            p_wf = supabase.table("pedidos").select("*").eq("status_geral", "EM PRODUÇÃO").execute()
-            if p_wf.data:
-                sel = st.selectbox("Selecione a Ordem para configurar", options=[p['numero_pedido'] for p in p_wf.data])
-                id_w = next(i['id'] for i in p_wf.data if i['numero_pedido'] == sel)
-                with st.form("f_workflow"):
-                    arq = st.file_uploader("Documentação Técnica", type=['pdf', 'jpg', 'png', 'dwg'])
-                    st.markdown("**Checklist de Etapas Industriais**")
-                    e1, e2, e3 = st.columns(3)
-                    h_c, h_d = e1.checkbox("Corte a Laser"), e1.checkbox("Dobra CNC")
-                    h_s, h_m = e2.checkbox("Soldagem"), e2.checkbox("Metaleira")
-                    h_ca, h_g, h_pi = e3.checkbox("Calandragem"), e3.checkbox("Galvanização"), e3.checkbox("Pintura")
-                    if st.form_submit_button("SALVAR CONFIGURAÇÃO"):
-                        url = ""
-                        if arq:
-                            path = f"pedidos/{sel}_{arq.name}"
-                            supabase.storage.from_("desenhos").upload(path, arq.getvalue(), file_options={"upsert": "true"})
-                            url = supabase.storage.from_("desenhos").get_public_url(path)
-                        upd_w = {"arquivo_url": url, "has_corte_laser": h_c, "has_dobra_cnc": h_d, "has_solda": h_s, "has_metaleira": h_m, "has_calandragem": h_ca, "has_galvanizacao": h_g, "has_pintura": h_pint}
-                        supabase.table("pedidos").update(upd_w).eq("id", id_w).execute()
-                        st.success("Workflow Configurado!")
-            else: st.info("Nenhuma OS 'EM PRODUÇÃO' pendente de configuração.")
-
-    # --- MÓDULO: CHÃO DE FÁBRICA (AS 7 ETAPAS COMPLETAS RESTAURADAS) ---
-    with tab_fabrica:
-        st.subheader("Execução Industrial Solluz systems")
+    # PÁGINA: CHÃO DE FÁBRICA
+    elif p == "fab":
+        st.title("⚙️ Chão de Fábrica")
         atv = supabase.table("pedidos").select("id, numero_pedido, arquivo_url").eq("status_geral", "EM PRODUÇÃO").execute()
-        l_atv = {p['numero_pedido']: p for p in atv.data}
-        if l_atv:
-            escolha = st.selectbox("OS em Operação:", list(l_atv.keys()))
-            item = l_atv[escolha]
-            if item['arquivo_url']: st.link_button("📂 VISUALIZAR DESENHO TÉCNICO", item['arquivo_url'], use_container_width=True)
-            
+        if atv.data:
+            sel = st.selectbox("OS em Curso:", [x['numero_pedido'] for x in atv.data])
+            item = next(x for x in atv.data if x['numero_pedido'] == sel)
+            if item['arquivo_url']: st.link_button("📂 VER DESENHO", item['arquivo_url'])
             det = supabase.table("pedidos").select("*").eq("id", item['id']).single().execute().data
             prod = supabase.table("linha_producao").select("*").eq("id_pedido", item['id']).single().execute().data
             
             def render_etapa(label, campo, hab):
                 if hab:
-                    with st.expander(f"⚙️ {label.upper()}", expanded=True):
+                    with st.expander(f"PROCESSO: {label.upper()}", expanded=True):
                         c1, c2, c3 = st.columns([1, 1, 2])
                         i, f = prod.get(f"{campo}_inicio"), prod.get(f"{campo}_fim")
                         if not i:
                             if c1.button("INICIAR", key=f"i_{campo}"):
                                 supabase.table("linha_producao").update({f"{campo}_inicio": "now()"}).eq("id_pedido", item['id']).execute()
+                                registrar_log("FÁBRICA", f"Iniciou {label} na OS {sel}")
                                 st.rerun()
                         elif not f:
-                            c1.info(f"Início: {i[11:16]}")
-                            obs = c3.text_input("Obs Técnica", key=f"o_{campo}")
+                            obs = c3.text_input("Obs", key=f"o_{campo}")
                             if c2.button("FINALIZAR", key=f"f_{campo}"):
                                 supabase.table("linha_producao").update({f"{campo}_fim": "now()", f"{campo}_obs": obs}).eq("id_pedido", item['id']).execute()
+                                registrar_log("FÁBRICA", f"Finalizou {label} na OS {sel}")
                                 st.rerun()
-                        else: st.success(f"CONCLUÍDO | {i[11:16]} - {f[11:16]}")
+                        else: st.success(f"OK: {i[11:16]} - {f[11:16]}")
 
-            # AS 7 ETAPAS RESTAURADAS
-            render_etapa("Corte a Laser", "corte", det['has_corte_laser'])
-            render_etapa("Dobra CNC", "dobra", det['has_dobra_cnc'])
-            render_etapa("Soldagem", "solda", det['has_solda'])
+            render_etapa("Corte", "corte", det['has_corte_laser'])
+            render_etapa("Dobra", "dobra", det['has_dobra_cnc'])
+            render_etapa("Solda", "solda", det['has_solda'])
             render_etapa("Metaleira", "metaleira", det['has_metaleira'])
             render_etapa("Calandragem", "calandragem", det['has_calandragem'])
             render_etapa("Galvanização", "galvanizacao", det['has_galvanizacao'])
             render_etapa("Pintura", "pintura", det['has_pintura'])
-        else: st.info("Sem ordens ativa.")
 
-    # --- MONITOR TV (MODO CLARO) ---
-    if tab_tv:
-        with tab_tv:
-            st.subheader("Monitor Industrial C-Metal")
-            res_tv = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").eq("status_geral", "EM PRODUÇÃO").execute()
-            for obra in res_tv.data:
-                lp = obra['linha_producao'][0] if obra.get('linha_producao') else {}
-                st.markdown(f"<div class='row-monitor'><div style='flex: 1;'><div class='id-site'>{obra['numero_pedido']}</div><div style='font-size: 0.8em; color: #64748b;'>{obra['projetos']['nome_projeto']}</div></div><div style='flex: 2; display: flex; justify-content: space-around;'><div class='step-unit'><div class='label-etapa'>Corte</div><div class='dot {'bg-success' if lp.get('corte_fim') else 'bg-danger'}'></div></div><div class='step-unit'><div class='label-etapa'>Dobra</div><div class='dot {'bg-success' if lp.get('dobra_fim') else 'bg-danger'}'></div></div><div class='step-unit'><div class='label-etapa'>Solda</div><div class='dot {'bg-success' if lp.get('solda_fim') else 'bg-danger'}'></div></div><div class='step-unit'><div class='label-etapa'>Pintura</div><div class='dot {'bg-success' if lp.get('pintura_fim') else 'bg-danger'}'></div></div></div></div>", unsafe_allow_html=True)
+    # PÁGINA: MONITOR TV
+    elif p == "tv":
+        st.title("📺 Monitor Industrial")
+        res_tv = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").eq("status_geral", "EM PRODUÇÃO").execute()
+        for obra in res_tv.data:
+            lp = obra['linha_producao'][0] if obra.get('linha_producao') else {}
+            st.markdown(f"<div class='row-monitor'><div style='flex: 1;'><div class='id-site'>{obra['numero_pedido']}</div><div style='color: #64748b;'>{obra['projetos']['nome_projeto']}</div></div><div style='flex: 2; display: flex; justify-content: space-around;'><div class='step-unit'><div class='label-etapa'>Corte</div><div class='dot {'bg-success' if lp.get('corte_fim') else 'bg-danger'}'></div></div><div class='step-unit'><div class='label-etapa'>Dobra</div><div class='dot {'bg-success' if lp.get('dobra_fim') else 'bg-danger'}'></div></div><div class='step-unit'><div class='label-etapa'>Solda</div><div class='dot {'bg-success' if lp.get('solda_fim') else 'bg-danger'}'></div></div><div class='step-unit'><div class='label-etapa'>Pintura</div><div class='dot {'bg-success' if lp.get('pintura_fim') else 'bg-danger'}'></div></div></div></div>", unsafe_allow_html=True)
 
-    # --- ADMINISTRAÇÃO (DADOS MESTRES COMPLETOS) ---
-    if tab_admin:
-        with tab_admin:
-            st.subheader("Configurações Globais")
+    # PÁGINA: ADMINISTRAÇÃO
+    elif p == "adm":
+        st.title("👥 Administração")
+        sub_u, sub_l, sub_d = st.tabs(["USUÁRIOS", "LOGS", "DADOS MESTRES"])
+        with sub_u:
+            users = supabase.table("usuarios").select("*").execute()
+            st.dataframe(pd.DataFrame(users.data)[['login', 'perfil']], use_container_width=True)
+            with st.form("new_u"):
+                nl, ns, np = st.text_input("Login"), st.text_input("Senha"), st.selectbox("Perfil", ["admin", "producao"])
+                if st.form_submit_button("CRIAR"):
+                    supabase.table("usuarios").insert({"login": nl, "senha": ns, "perfil": np}).execute()
+                    registrar_log("ADM", f"Criou usuário {nl}")
+                    st.rerun()
+        with sub_l:
+            logs = supabase.table("logs_sistema").select("*").order("data_hora", desc=True).limit(100).execute()
+            if logs.data: st.table(pd.DataFrame(logs.data)[['data_hora', 'usuario', 'acao', 'detalhe']])
+        with sub_d:
             c1, c2 = st.columns(2)
             with c1:
-                with st.expander("Registro de Solicitante Cliente", expanded=True):
-                    with st.form("cad_sol"):
-                        n, e, t = st.text_input("Responsável Solluz"), st.text_input("Empresa"), st.text_input("Telefone")
-                        obs = st.text_area("Notas Adicionais (Endereço Faturamento, etc)")
-                        if st.form_submit_button("REGISTRAR NOVO SOLICITANTE"):
-                            supabase.table("solicitantes").insert({"nome": n, "empresa": e, "telefone": t, "info_adicional": obs}).execute()
-                            st.success("Salvo!")
+                with st.form("c_s"):
+                    n, e, t, o = st.text_input("Responsável"), st.text_input("Empresa"), st.text_input("Telefone"), st.text_area("Notas")
+                    if st.form_submit_button("SALVAR CLIENTE"):
+                        supabase.table("solicitantes").insert({"nome": n, "empresa": e, "telefone": t, "info_adicional": o}).execute()
             with c2:
-                with st.expander("Registro de Projeto", expanded=True):
-                    s_db = supabase.table("solicitantes").select("id, nome, empresa").execute()
-                    l_s = {f"{s['nome']} ({s['empresa']})": s['id'] for s in s_db.data}
-                    with st.form("cad_proj"):
-                        np, sid, cid = st.text_input("Título"), st.selectbox("Vincular Solicitante", options=list(l_s.keys())), st.text_input("Cidade")
-                        end, num, cep = st.text_input("Endereço Completo"), st.text_input("Nº"), st.text_input("CEP")
-                        if st.form_submit_button("VINCULAR PROJETO"):
-                            supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()
-                            st.success("Projeto vinculado!")
+                s_db = supabase.table("solicitantes").select("id, nome, empresa").execute()
+                l_s = {f"{s['nome']} ({s['empresa']})": s['id'] for s in s_db.data}
+                with st.form("c_p"):
+                    np, sid, cid = st.text_input("Título"), st.selectbox("Solicitante", list(l_s.keys())), st.text_input("Cidade")
+                    end, num, cep = st.text_input("Endereço"), st.text_input("Nº"), st.text_input("CEP")
+                    if st.form_submit_button("VINCULAR PROJETO"):
+                        supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()

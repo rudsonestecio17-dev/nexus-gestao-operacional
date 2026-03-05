@@ -30,7 +30,7 @@ st.markdown("""
     .stSidebar [data-testid="stVerticalBlock"] > div > button {
         background-color: transparent !important;
         border: none !important;
-        color: #202b6b !important;
+        color: #202c65 !important;
         text-align: left !important;
         justify-content: flex-start !important;
         padding: 12px 20px !important;
@@ -63,7 +63,7 @@ st.markdown("""
     
     /* Formulários e Botões */
     .stButton>button { border-radius: 6px; font-weight: 700; text-transform: uppercase; }
-    .stExpander { background-color: #f8fafc !important; border-color: #e2e8f0 !important; }
+    .stExpander { background-color: #f8fafc !important; border-color: #202b6b !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -273,4 +273,5 @@ else:
         with s_l:
             l_db = supabase.table("logs_sistema").select("*").order("data_hora", desc=True).limit(50).execute()
             if l_db.data: st.table(pd.DataFrame(l_db.data)[['data_hora', 'usuario', 'acao', 'detalhe']])
+
 

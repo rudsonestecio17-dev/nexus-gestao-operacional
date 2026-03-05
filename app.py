@@ -3,7 +3,7 @@ import pandas as pd
 from supabase import create_client
 
 # 1. CONFIGURAÇÕES SOLLUZ SYSTEMS (DESIGN PREMIUM DARK)
-st.set_page_config(page_title="Solluz SYSTEMS | ERP", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Solluz systems | ERP", layout="wide", initial_sidebar_state="collapsed")
 
 # 2. CONEXÃO SUPABASE
 SUPABASE_URL = "https://olwwfoiiiyfhpakyftxt.supabase.co"
@@ -82,7 +82,7 @@ if 'autenticado' not in st.session_state:
 def tela_login():
     st.markdown(f"""
         <div style='text-align: center; margin-bottom: 30px;'>
-            <h1 style='color: #3b82f6; font-size: 2.8em;'>Solluz SYSTEMS</h1>
+            <h1 style='color: #3b82f6; font-size: 2.8em;'>Solluz systems</h1>
             <caption style='color: #8b949e;'>CENTRO DE CONTROLE DE PRODUÇÃO</caption>
         </div>
     """, unsafe_allow_html=True)
@@ -91,7 +91,7 @@ def tela_login():
         with st.form("login_form"):
             u = st.text_input("Usuário Mestre")
             s = st.text_input("Senha", type="password")
-            if st.form_submit_button("CONECTAR À FÁBRICA"):
+            if st.form_submit_button("CONECTAR"):
                 res = supabase.table("usuarios").select("*").eq("login", u).eq("senha", s).execute()
                 if res.data:
                     st.session_state.autenticado = True
@@ -107,7 +107,7 @@ else:
     # Menu Lateral com Logo
     with st.sidebar:
         if LOGO_URL == "https://i.ibb.co/6Lr0QZY/nexus-2.png":
-            st.markdown("<h2 style='text-align: center; color: #3b82f6;'>LOGO AQUI</h2>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align: center; color: #3b82f6;'>SOLLUZ</h2>", unsafe_allow_html=True)
         else:
             st.image(LOGO_URL, width=150)
             
@@ -117,7 +117,7 @@ else:
             st.session_state.autenticado = False
             st.rerun()
 
-    st.title("Solluz SYSTEMS | Gestão Industrial")
+    st.title("Solluz systems | Gestão Industrial")
     st.caption("Controle Operacional e Monitoramento de Produção C-Metal")
     st.divider()
 
@@ -312,4 +312,5 @@ else:
                         if st.form_submit_button("VINCULAR PROJETO À Solluz"):
                             supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()
                             st.success("Vinculado com Sucesso!")
+
 

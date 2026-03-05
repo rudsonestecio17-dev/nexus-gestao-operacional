@@ -30,7 +30,7 @@ st.markdown("""
     .stSidebar [data-testid="stVerticalBlock"] > div > button {
         background-color: transparent !important;
         border: none !important;
-        color: #FFFFFF !important;
+        color: #202b6b !important;
         text-align: left !important;
         justify-content: flex-start !important;
         padding: 12px 20px !important;
@@ -273,3 +273,4 @@ else:
         with s_l:
             l_db = supabase.table("logs_sistema").select("*").order("data_hora", desc=True).limit(50).execute()
             if l_db.data: st.table(pd.DataFrame(l_db.data)[['data_hora', 'usuario', 'acao', 'detalhe']])
+

@@ -3,137 +3,101 @@ import pandas as pd
 from supabase import create_client
 from datetime import datetime
 
-# 1. CONFIGURAÇÕES SOLLUZ SYSTEMS
+# Configurações
 st.set_page_config(page_title="Solluz SYSTEMS | ERP", layout="wide", initial_sidebar_state="expanded")
-
-# 2. CONEXÃO SUPABASE
 SUPABASE_URL = "https://olwwfoiiiyfhpakyftxt.supabase.co"
 SUPABASE_KEY = "sb_publishable_llZ8M4D7zp8Dk1XBVXfBlg_SXTTzFa7"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-# URL DA LOGO OFICIAL
 LOGO_URL = "https://i.ibb.co/6Lr0QZY/nexus-2.png"
 
-# 3. CSS PREMIUM (Cores Solluz, Sidebar #202c65, Sem Emojis, Botão Ativo Corrigido)
+# CSS SOLLUZ - Monocromático e Minimalista
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
-    
     .stApp { background-color: #FFFFFF !important; color: #1e293b !important; font-family: 'Inter', sans-serif !important; }
+    [data-testid="stSidebar"] { background-color: #202c65 !important; }
     
-    /* Barra Lateral Solluz */
-    [data-testid="stSidebar"] { background-color: #202c65 !important; border-right: 1px solid #e2e8f0; }
+    /* Cabeçalhos da Sidebar */
+    [data-testid="stSidebar"] section h2 { color: #FFFFFF !important; font-size: 11px !important; margin-top: 20px !important; letter-spacing: 1px !important; opacity: 0.7; }
     
-    /* Botões da Sidebar - Estilo Profissional */
-    .stSidebar div[data-testid="stVerticalBlock"] > div [data-testid="stButton"] button {
+    /* Botões da Sidebar */
+    .stSidebar [data-testid="stButton"] button {
         background-color: transparent !important;
         color: #FFFFFF !important;
         border: 1px solid rgba(255,255,255,0.1) !important;
         width: 100% !important;
         text-align: left !important;
-        padding: 12px 15px !important;
-        font-weight: 600 !important;
-        text-transform: uppercase !important;
-        font-size: 11px !important;
-        letter-spacing: 0.5px !important;
-        margin-bottom: -10px !important;
-        transition: 0.3s;
+        padding: 10px 15px !important;
+        font-weight: 500 !important;
+        font-size: 12px !important;
+        margin-bottom: 2px !important;
     }
-
-    .stSidebar div[data-testid="stVerticalBlock"] > div [data-testid="stButton"] button:hover {
-        background-color: #3b82f6 !important;
-        border-color: #3b82f6 !important;
-        color: #FFFFFF !important;
-    }
-
-    /* Cards e Monitor TV */
-    .row-monitor {
-        background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 12px; 
-        border: 1px solid #e2e8f0; border-left: 8px solid #3b82f6; 
-        display: flex; justify-content: space-between; align-items: center;
-    }
-    .dot { height: 18px; width: 18px; border-radius: 50%; display: inline-block; margin: 4px auto; border: 2px solid #FFF; }
-    .bg-success { background-color: #238636; box-shadow: 0 0 10px rgba(35, 134, 54, 0.4); }
-    .bg-danger { background-color: #da3633; box-shadow: 0 0 8px rgba(218, 54, 51, 0.3); }
+    .stSidebar [data-testid="stButton"] button:hover { background-color: #3b82f6 !important; border-color: #3b82f6 !important; }
     
-    /* Inputs e Expanders */
-    .stExpander { background-color: #f8fafc !important; border-color: #e2e8f0 !important; }
-    input, select, textarea { background-color: #FFFFFF !important; color: #1e293b !important; border: 1px solid #e2e8f0 !important; }
+    /* Estilo página ativa */
+    .active-btn { background-color: #3b82f6 !important; border-left: 4px solid #FFFFFF !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÕES DE APOIO ---
+# Funções
 def registrar_log(acao, detalhe):
-    usuario = st.session_state.get('user_name', 'Sistema')
-    try:
-        supabase.table("logs_sistema").insert({"usuario": usuario, "acao": acao, "detalhe": detalhe}).execute()
+    try: supabase.table("logs_sistema").insert({"usuario": st.session_state.get('user_name'), "acao": acao, "detalhe": detalhe}).execute()
     except: pass
 
-def calcular_horas(inicio, fim):
-    if inicio and fim:
-        fmt = "%Y-%m-%dT%H:%M:%S"
-        try:
-            d_ini = datetime.strptime(inicio[:19], fmt)
-            d_fim = datetime.strptime(fim[:19], fmt)
-            diff = d_fim - d_ini
-            return round(diff.total_seconds() / 3600, 2)
-        except: return 0
-    return 0
+def render_btn(label, code):
+    # Lógica para destacar botão ativo
+    is_active = st.session_state.pagina_ativa == code
+    if st.button(label, key=f"btn_{code}", type="primary" if is_active else "secondary"):
+        st.session_state.pagina_ativa = code
+        st.rerun()
 
-# --- CONTROLE DE ACESSO ---
-if 'autenticado' not in st.session_state:
-    st.session_state.autenticado = False
+# --- LOGIN ---
+if 'autenticado' not in st.session_state: st.session_state.autenticado = False
 
 if not st.session_state.autenticado:
-    st.markdown("<div style='text-align: center; padding-top: 100px;'><h1 style='color: #202c65;'>Solluz SYSTEMS</h1><p>CENTRO DE CONTROLE INDUSTRIAL</p></div>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([1, 1.2, 1])
+    c1, c2, c3 = st.columns([1, 1, 1])
     with c2:
+        st.markdown("<h1 style='text-align: center; color: #202c65;'>Solluz SYSTEMS</h1>", unsafe_allow_html=True)
         with st.form("login"):
             u = st.text_input("Usuário")
             s = st.text_input("Senha", type="password")
-            if st.form_submit_button("ACESSAR SISTEMA"):
+            if st.form_submit_button("ACESSAR"):
                 res = supabase.table("usuarios").select("*").eq("login", u).eq("senha", s).execute()
                 if res.data:
                     st.session_state.update({"autenticado": True, "perfil": res.data[0]['perfil'], "user_name": res.data[0]['login']})
-                    registrar_log("LOGIN", "Acesso ao painel")
                     st.rerun()
-                else: st.error("Acesso bloqueado.")
 else:
-    # --- BARRA LATERAL ---
+    # --- SIDEBAR HIERÁRQUICA ---
     with st.sidebar:
-        st.image(LOGO_URL, width=180)
-        st.markdown(f"<p style='color:white; text-align:center;'>{st.session_state.user_name.upper()}</p>", unsafe_allow_html=True)
+        st.image(LOGO_URL, width=150)
+        st.write(f"Usuário: {st.session_state.user_name.upper()}")
         st.divider()
-        
-        if st.session_state.perfil == "admin":
-            menu = {
-                "Dashboard": "dash",
-                "Comercial": "com",
-                "Financeiro": "fin",
-                "Cadastros": "cad",
-                "Workflow OS": "work",
-                "Chão de Fábrica": "fab",
-                "Relatorios": "rel",
-                "Monitor TV": "tv",
-                "Administração": "adm"
-            }
-        else:
-            menu = {"Chão de Fábrica": "fab"}
 
-        if 'pagina_ativa' not in st.session_state:
-            st.session_state.pagina_ativa = "dash" if st.session_state.perfil == "admin" else "fab"
+        if 'pagina_ativa' not in st.session_state: st.session_state.pagina_ativa = "dash"
 
-        for label, code in menu.items():
-            if st.button(label, key=f"nav_{code}"):
-                st.session_state.pagina_ativa = code
-                st.rerun()
-        
+        st.subheader("CONTROLE OPERACIONAL")
+        render_btn("Dashboard", "dash")
+        render_btn("Relatórios", "rel")
+        render_btn("Monitoramento", "tv")
+
+        st.subheader("FINANCEIRO")
+        render_btn("Receita Total", "fin")
+
+        st.subheader("ADMINISTRAÇÃO")
+        render_btn("Cadastros", "cad")
+        render_btn("Administração", "adm")
+
+        st.subheader("PROJETOS")
+        render_btn("Workflow OS", "work")
+
+        st.subheader("PRODUÇÃO")
+        render_btn("Chão de Fábrica", "fab")
+
         st.divider()
-        if st.button("Sair"):
+        if st.button("SAIR"):
             st.session_state.autenticado = False
             st.rerun()
 
-    # --- PÁGINAS ---
+    # --- RENDERIZAÇÃO ---
     p = st.session_state.pagina_ativa
 
     if p == "dash":
@@ -280,3 +244,4 @@ else:
         with sub_l:
             l_db = supabase.table("logs_sistema").select("*").order("data_hora", desc=True).limit(50).execute()
             if l_db.data: st.table(pd.DataFrame(l_db.data)[['data_hora', 'usuario', 'acao', 'detalhe']])
+

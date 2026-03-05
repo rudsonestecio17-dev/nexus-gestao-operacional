@@ -11,7 +11,7 @@ SUPABASE_KEY = "sb_publishable_llZ8M4D7zp8Dk1XBVXfBlg_SXTTzFa7"
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # URL DA LOGO (Substitua pelo link direto da sua imagem da Solluz)
-LOGO_URL = "SUA_LOGO_AQUI_OU_SUBSTITUA_PELO_TEXTO_LOGO_AQUI" # Se não tiver link, manteremos o texto.
+LOGO_URL = "https://i.ibb.co/6Lr0QZY/nexus-2.png" # Se não tiver link, manteremos o texto.
 
 # CSS AVANÇADO SOLLUZ (Deep Dark & Cyan Control)
 st.markdown("""
@@ -124,7 +124,7 @@ else:
     # Define visibilidade das abas conforme perfil
     if st.session_state.perfil == "admin":
         tab_dash, tab_comercial, tab_pedido, tab_fabrica, tab_tv, tab_admin = st.tabs([
-            "📊 Dashboard", "📝 Comercial", "🏭 Workflow OS", "🔧 Chão de Fábrica", "📺 Monitor TV", "👥 ADMIN"
+            "Dashboard", "Comercial", "Workflow OS", "Chão de Fábrica", "Monitor TV", "ADMIN"
         ])
     else:
         # Perfil Produção cai direto no Chão de Fábrica
@@ -312,3 +312,4 @@ else:
                         if st.form_submit_button("VINCULAR PROJETO À Solluz"):
                             supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()
                             st.success("Vinculado com Sucesso!")
+

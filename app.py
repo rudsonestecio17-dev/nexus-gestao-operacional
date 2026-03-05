@@ -20,7 +20,7 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
     
     /* Global */
-    .stApp { background-color: #202b6b !important; color: #1e293b !important; font-family: 'Inter', sans-serif !important; }
+    .stApp { background-color: #FFFFF !important; color: #1e293b !important; font-family: 'Inter', sans-serif !important; }
     
     /* Barra Lateral Solluz */
     [data-testid="stSidebar"] { background-color: #202c65 !important; border-right: 1px solid #e2e8f0; }
@@ -273,6 +273,7 @@ else:
         with s_l:
             l_db = supabase.table("logs_sistema").select("*").order("data_hora", desc=True).limit(50).execute()
             if l_db.data: st.table(pd.DataFrame(l_db.data)[['data_hora', 'usuario', 'acao', 'detalhe']])
+
 
 
 

@@ -262,7 +262,9 @@ else:
                 if hab:
                     with st.expander(f"⚙️ {label.upper()}", expanded=True):
                         c1, c2, c3 = st.columns([1, 1, 2])
+                        # 'prod' vem da query inicial da página
                         i, f = prod.get(f"{campo}_inicio"), prod.get(f"{campo}_fim")
+                        
                         if not i:
                             if c1.button("INICIAR", key=f"i_{campo}"):
                                 supabase.table("linha_producao").update({f"{campo}_inicio": "now()"}).eq("id_pedido", item['id']).execute()
@@ -270,27 +272,41 @@ else:
                                 st.rerun()
                         elif not f:
                             obs = c3.text_input("Obs", key=f"o_{campo}")
-                            if c2.button("FINALIZAR", key=f"f_{campo}"):
+                            if c2.button("FINALIZAR ETAPA", key=f"f_{campo}"):
+                                # 1. Atualiza a etapa atual
                                 supabase.table("linha_producao").update({f"{campo}_fim": "now()", f"{campo}_obs": obs}).eq("id_pedido", item['id']).execute()
-                                # Checagem de Fiscalização
-                                atual = supabase.table("pedidos").select("*, linha_producao(*)").eq("id", item['id']).single().execute().data
-                                lp = atual['linha_producao'][0]
-                                concluidos = True
-                                for c in ['corte','dobra','solda','metaleira','calandragem','galvanizacao','pintura']:
-                                    if atual[f'has_{c if c!="corte" else "corte_laser" if c=="corte" else c}'] and not lp.get(f'{c}_fim'):
-                                        concluidos = False
-                                if concluidos:
+                                
+                                # 2. Busca dados atualizados para checar se a produção toda acabou
+                                r_check = supabase.table("pedidos").select("*, linha_producao(*)").eq("id", item['id']).single().execute().data
+                                lp = r_check['linha_producao'][0]
+                                
+                                # Mapeamento correto das colunas de 'has_' para as colunas de '_fim'
+                                # Isso evita o KeyError porque os nomes são fixos
+                                checklist = {
+                                    "has_corte_laser": "corte_fim",
+                                    "has_dobra_cnc": "dobra_fim",
+                                    "has_solda": "solda_fim",
+                                    "has_metaleira": "metaleira_fim",
+                                    "has_calandragem": "calandragem_fim",
+                                    "has_galvanizacao": "galvanizacao_fim",
+                                    "has_pintura": "pintura_fim"
+                                }
+                                
+                                concluido_geral = True
+                                for coluna_has, coluna_fim in checklist.items():
+                                    # Se o projeto exige a etapa (True) e ela ainda não tem data de fim (None)
+                                    if r_check.get(coluna_has) == True and not lp.get(coluna_fim):
+                                        concluido_geral = False
+                                        break
+                                
+                                # 3. Se tudo que foi marcado no Workflow terminou, muda para Fiscalização
+                                if concluido_geral:
                                     supabase.table("pedidos").update({"status_geral": "EM FISCALIZAÇÃO"}).eq("id", item['id']).execute()
+                                    registrar_log("SISTEMA", f"OS {sel} concluída e enviada para fiscalização.")
+                                
                                 st.rerun()
-                        else: st.success(f"OK: {i[11:16]} - {f[11:16]}")
-
-            render_etapa("Corte", "corte", item['has_corte_laser'])
-            render_etapa("Dobra", "dobra", item['has_dobra_cnc'])
-            render_etapa("Solda", "solda", item['has_solda'])
-            render_etapa("Metaleira", "metaleira", item['has_metaleira'])
-            render_etapa("Calandragem", "calandragem", item['has_calandragem'])
-            render_etapa("Galvanização", "galvanizacao", item['has_galvanizacao'])
-            render_etapa("Pintura", "pintura", item['has_pintura'])
+                        else: 
+                            st.success(f"CONCLUÍDO | {i[11:16]} - {f[11:16]}")
 
     # ADMINISTRAÇÃO
     elif p == "adm":
@@ -307,3 +323,4 @@ else:
         with s2:
             l_db = supabase.table("logs_sistema").select("*").order("data_hora", desc=True).limit(50).execute()
             if l_db.data: st.table(pd.DataFrame(l_db.data)[['data_hora', 'usuario', 'acao', 'detalhe']])
+

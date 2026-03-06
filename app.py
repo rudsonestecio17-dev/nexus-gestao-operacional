@@ -13,7 +13,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 LOGO_URL = "https://i.ibb.co/6Lr0QZY/nexus-2.png"
 
-# 3. CSS PREMIUM (Design Solluz - Barra Lateral #202c65 e Fundo Branco)
+# 3. CSS PREMIUM (Sidebar #202c65, Fundo Branco, Botões Monocromáticos)
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
@@ -68,7 +68,7 @@ if not st.session_state.autenticado:
                     st.rerun()
                 else: st.error("Erro de acesso.")
 else:
-    # --- BARRA LATERAL COM HIERARQUIA SOLICITADA ---
+    # --- BARRA LATERAL (HIERARQUIA DE SUB-OPÇÕES) ---
     with st.sidebar:
         st.image(LOGO_URL, width=180)
         st.write(f"Solluz | **{st.session_state.user_name.upper()}**")
@@ -106,10 +106,10 @@ else:
             st.session_state.autenticado = False
             st.rerun()
 
-    # --- RENDERIZAÇÃO DE PÁGINAS ---
     p = st.session_state.pagina_ativa
 
-    # DASHBOARD
+    # --- PÁGINAS ---
+
     if p == "dash":
         st.title("Dashboard Operacional")
         res = supabase.table("pedidos").select("*, projetos(nome_projeto)").execute()
@@ -117,7 +117,6 @@ else:
             df = pd.DataFrame([{"OS": i['numero_pedido'], "Projeto": i['projetos']['nome_projeto'] if i['projetos'] else "-", "Status": i['status_geral'], "Prazo": i['prazo_entrega']} for i in res.data])
             st.dataframe(df, use_container_width=True, hide_index=True)
 
-    # RELATÓRIOS
     elif p == "rel":
         st.title("Relatórios de Produtividade")
         res_rel = supabase.table("linha_producao").select("*, pedidos(numero_pedido)").execute()
@@ -130,15 +129,13 @@ else:
             st.bar_chart(df_rel.set_index("OS"))
             st.dataframe(df_rel, use_container_width=True)
 
-    # MONITORAMENTO TV
     elif p == "tv":
         st.title("Monitoramento Industrial")
         res_tv = supabase.table("pedidos").select("*, projetos(nome_projeto), linha_producao(*)").eq("status_geral", "EM PRODUÇÃO").execute()
         for o in res_tv.data:
             lp = o['linha_producao'][0] if o['linha_producao'] else {}
-            st.markdown(f"<div class='row-monitor'><div style='flex: 1;'><b>{o['numero_pedido']}</b><br>{o['projetos']['nome_projeto'] if o['projetos'] else ''}</div><div style='flex: 2; display: flex; justify-content: space-around;'>Corte <div class='dot {'bg-success' if lp.get('corte_fim') else 'bg-danger'}'></div> Dobra <div class='dot {'bg-success' if lp.get('dobra_fim') else 'bg-danger'}'></div> Solda <div class='dot {'bg-success' if lp.get('solda_fim') else 'bg-danger'}'></div> Pintura <div class='dot {'bg-success' if lp.get('pintura_fim') else 'bg-danger'}'></div></div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='row-monitor'><div style='flex: 1;'><b>{o['numero_pedido']}</b><br>{o['projetos']['nome_projeto'] if o['projetos'] else ''}</div><div style='flex: 2; display: flex; justify-content: space-around;'>Corte <div class='dot {'bg-success' if lp.get('corte_fim') else 'bg-danger'}'></div> Solda <div class='dot {'bg-success' if lp.get('solda_fim') else 'bg-danger'}'></div> Pintura <div class='dot {'bg-success' if lp.get('pintura_fim') else 'bg-danger'}'></div></div></div>", unsafe_allow_html=True)
 
-    # FINANCEIRO
     elif p == "fin":
         st.title("Financeiro | Receita Bruta")
         res_fin = supabase.table("pedidos").select("numero_pedido, valor_orcamento, status_geral").execute()
@@ -147,7 +144,6 @@ else:
             st.metric("Receita Total Bruta", f"R$ {total:,.2f}")
             st.dataframe(pd.DataFrame(res_fin.data), use_container_width=True)
 
-    # LOGÍSTICA - VALIDAÇÃO
     elif p == "log_val":
         st.title("Logística | Fiscalização")
         res = supabase.table("pedidos").select("*, projetos(nome_projeto)").eq("status_geral", "EM FISCALIZAÇÃO").execute()
@@ -155,18 +151,17 @@ else:
             for os in res.data:
                 col_a, col_b = st.columns([3, 1])
                 col_a.write(f"**OS: {os['numero_pedido']}** - {os['projetos']['nome_projeto'] if os['projetos'] else ''}")
-                if col_b.button("APROVAR", key=f"ap_{os['id']}"):
+                if col_b.button("APROVAR PARA ENTREGA", key=f"ap_{os['id']}"):
                     supabase.table("pedidos").update({"status_geral": "AGUARDANDO ENTREGA"}).eq("id", os['id']).execute()
                     registrar_log("LOGISTICA", f"OS {os['numero_pedido']} aprovada")
                     st.rerun()
         else: st.info("Nenhuma OS em fiscalização.")
 
-    # LOGÍSTICA - ENTREGA
     elif p == "log_ent":
         st.title("Logística | Programação de Entrega")
         res = supabase.table("pedidos").select("*, projetos(nome_projeto)").eq("status_geral", "AGUARDANDO ENTREGA").execute()
         if res.data:
-            sel_ent = st.selectbox("OS:", [x['numero_pedido'] for x in res.data])
+            sel_ent = st.selectbox("OS para despachar:", [x['numero_pedido'] for x in res.data])
             os_data = next(x for x in res.data if x['numero_pedido'] == sel_ent)
             with st.form("f_ent"):
                 c1, c2 = st.columns(2)
@@ -174,13 +169,13 @@ else:
                 v_frete = c1.number_input("Valor Frete R$", min_value=0.0)
                 d_ret = c2.date_input("Data Retirada")
                 d_pre = c2.date_input("Previsão Entrega")
-                if st.form_submit_button("FINALIZAR ENTREGA"):
+                if st.form_submit_button("FINALIZAR ENTREGA E CONCLUIR"):
                     supabase.table("pedidos").update({"status_geral": "CONCLUÍDO"}).eq("id", os_data['id']).execute()
-                    registrar_log("LOGISTICA", f"OS {sel_ent} entregue via {transp}")
-                    st.success("OS Concluída!")
+                    registrar_log("LOGISTICA", f"OS {sel_ent} enviada via {transp}")
+                    st.success("OS Concluída com Sucesso!")
                     st.rerun()
+        else: st.info("Sem ordens aprovadas para entrega.")
 
-    # CADASTROS
     elif p == "cad":
         st.title("Cadastros de Base")
         c1, c2 = st.columns(2)
@@ -188,7 +183,7 @@ else:
             with st.expander("Cliente / Solicitante", expanded=True):
                 with st.form("f_s"):
                     n, e, t, o = st.text_input("Responsável"), st.text_input("Empresa"), st.text_input("Telefone"), st.text_area("Notas/Endereço")
-                    if st.form_submit_button("CADASTRAR CLIENTE"):
+                    if st.form_submit_button("SALVAR CLIENTE"):
                         supabase.table("solicitantes").insert({"nome": n, "empresa": e, "telefone": t, "info_adicional": o}).execute()
                         st.success("Salvo!")
         with c2:
@@ -202,7 +197,6 @@ else:
                         supabase.table("projetos").insert({"nome_projeto": np, "id_solicitante": l_s[sid], "cidade": cid, "endereco": end, "numero": num, "cep": cep}).execute()
                         st.success("Vinculado!")
 
-    # COMERCIAL
     elif p == "com":
         st.title("Projetos | Comercial")
         with st.expander("📝 Novo Orçamento", expanded=True):
@@ -228,7 +222,6 @@ else:
                     supabase.table("pedidos").update({"num_pv": pv, "num_po": po, "status_geral": ns}).eq("id", i['id']).execute()
                     st.rerun()
 
-    # WORKFLOW
     elif p == "work":
         st.title("Projetos | Workflow OS")
         p_wf = supabase.table("pedidos").select("*").eq("status_geral", "EM PRODUÇÃO").execute()
@@ -248,12 +241,11 @@ else:
                     supabase.table("pedidos").update({"arquivo_url": url, "has_corte_laser": h1, "has_dobra_cnc": h2, "has_solda": h3, "has_metaleira": h4, "has_calandragem": h5, "has_galvanizacao": h6, "has_pintura": h7}).eq("id", id_w).execute()
                     st.success("Workflow Pronto!")
 
-    # CHÃO DE FÁBRICA
     elif p == "fab":
         st.title("Produção | Chão de Fábrica")
         atv = supabase.table("pedidos").select("*, linha_producao(*)").eq("status_geral", "EM PRODUÇÃO").execute()
         if atv.data:
-            sel = st.selectbox("OS:", [x['numero_pedido'] for x in atv.data])
+            sel = st.selectbox("OS Ativa:", [x['numero_pedido'] for x in atv.data])
             item = next(x for x in atv.data if x['numero_pedido'] == sel)
             prod = item['linha_producao'][0]
             if item['arquivo_url']: st.link_button("📂 VER DESENHO", item['arquivo_url'])
@@ -262,65 +254,7 @@ else:
                 if hab:
                     with st.expander(f"⚙️ {label.upper()}", expanded=True):
                         c1, c2, c3 = st.columns([1, 1, 2])
-                        # 'prod' vem da query inicial da página
                         i, f = prod.get(f"{campo}_inicio"), prod.get(f"{campo}_fim")
-                        
                         if not i:
                             if c1.button("INICIAR", key=f"i_{campo}"):
                                 supabase.table("linha_producao").update({f"{campo}_inicio": "now()"}).eq("id_pedido", item['id']).execute()
-                                registrar_log("FABRICA", f"Iniciou {label} na OS {sel}")
-                                st.rerun()
-                        elif not f:
-                            obs = c3.text_input("Obs", key=f"o_{campo}")
-                            if c2.button("FINALIZAR ETAPA", key=f"f_{campo}"):
-                                # 1. Atualiza a etapa atual
-                                supabase.table("linha_producao").update({f"{campo}_fim": "now()", f"{campo}_obs": obs}).eq("id_pedido", item['id']).execute()
-                                
-                                # 2. Busca dados atualizados para checar se a produção toda acabou
-                                r_check = supabase.table("pedidos").select("*, linha_producao(*)").eq("id", item['id']).single().execute().data
-                                lp = r_check['linha_producao'][0]
-                                
-                                # Mapeamento correto das colunas de 'has_' para as colunas de '_fim'
-                                # Isso evita o KeyError porque os nomes são fixos
-                                checklist = {
-                                    "has_corte_laser": "corte_fim",
-                                    "has_dobra_cnc": "dobra_fim",
-                                    "has_solda": "solda_fim",
-                                    "has_metaleira": "metaleira_fim",
-                                    "has_calandragem": "calandragem_fim",
-                                    "has_galvanizacao": "galvanizacao_fim",
-                                    "has_pintura": "pintura_fim"
-                                }
-                                
-                                concluido_geral = True
-                                for coluna_has, coluna_fim in checklist.items():
-                                    # Se o projeto exige a etapa (True) e ela ainda não tem data de fim (None)
-                                    if r_check.get(coluna_has) == True and not lp.get(coluna_fim):
-                                        concluido_geral = False
-                                        break
-                                
-                                # 3. Se tudo que foi marcado no Workflow terminou, muda para Fiscalização
-                                if concluido_geral:
-                                    supabase.table("pedidos").update({"status_geral": "EM FISCALIZAÇÃO"}).eq("id", item['id']).execute()
-                                    registrar_log("SISTEMA", f"OS {sel} concluída e enviada para fiscalização.")
-                                
-                                st.rerun()
-                        else: 
-                            st.success(f"CONCLUÍDO | {i[11:16]} - {f[11:16]}")
-
-    # ADMINISTRAÇÃO
-    elif p == "adm":
-        st.title("Gestão do Sistema")
-        s1, s2 = st.tabs(["EQUIPE", "LOGS"])
-        with s1:
-            u_db = supabase.table("usuarios").select("*").execute()
-            st.dataframe(pd.DataFrame(u_db.data)[['login', 'perfil']], use_container_width=True)
-            with st.form("nu"):
-                nl, ns, np = st.text_input("Login"), st.text_input("Senha"), st.selectbox("Perfil", ["admin", "producao"])
-                if st.form_submit_button("CRIAR"):
-                    supabase.table("usuarios").insert({"login": nl, "senha": ns, "perfil": np}).execute()
-                    st.rerun()
-        with s2:
-            l_db = supabase.table("logs_sistema").select("*").order("data_hora", desc=True).limit(50).execute()
-            if l_db.data: st.table(pd.DataFrame(l_db.data)[['data_hora', 'usuario', 'acao', 'detalhe']])
-
